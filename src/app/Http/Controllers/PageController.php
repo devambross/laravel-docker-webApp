@@ -6,50 +6,27 @@ use Illuminate\Http\Request;
 
 Class PageController extends Controller
 {
-    public function about()
+    public function entrada()
     {
-        return view('about');
+        return view('entrada');
     }
 
-    public function contact()
+    public function registro()
     {
-        return view('contact');
+        return view('registro');
     }
 
-    public function home()
-    {
-        return view('home');
-    }
-
-    public function services()
+    public function eventos()
     {
         //Datos de ejemplo
-        $services = [
+        $eventos = [
             ['name' => 'Diseño Web', 'price' => 500],
             ['name' => 'Desarrollo backend', 'price' => 800],
             ['name' => 'SEO y Marketing', 'price' => 300],
         ];
 
         //Pasar datos a la vista
-        return view('services', ['services' => $services]);
+        return view('eventos', ['eventos' => $eventos]);
     }
 
-    public function contactForm()
-    {
-        return view('contact-form');
-    }
-
-    public function handleContact(\Illuminate\Http\Request $request)
-    {
-        //Obtener datos enviados
-        $name = $request->input('name');
-        $message = $request->input('message');
-
-        //Simulamos que gaurdamos o enviamos los datos
-        //Aquí solo retornamos a una vista
-        return view('contact-success', [
-            'name' => $name,
-            'message' => $message
-        ]);
-    }
 }

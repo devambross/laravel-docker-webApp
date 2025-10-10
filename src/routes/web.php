@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PageController;
 
-Route::get('/', [PageController::class, 'home']);
-Route::get('/about', [PageController::class, 'about']);
-Route::get('/contact', [PageController::class, 'contact']);
-Route::get('/services', [PageController::class, 'services']);
-Route::get('/contact-form', [PageController::class, 'contactForm']);
-Route::post('/contact-contact', [PageController::class, 'handleContact']);
+Route::get('/registro', [PageController::class, 'registro']);
+Route::get('/registro', [AuthController::class, 'registro'])->name('registro');
+Route::get('/entrada', [PageController::class, 'entrada']);
+Route::get('/eventos', [PageController::class, 'eventos']);
+Route::get('/',[AuthController::class, 'showLoginForm'])->name('login.form');
+Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
+Route::get('/logout', [AuthController::class, 'logout'])->name('logout');

@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Servicios')
+@section('title', 'Eventos')
 
 @section('content')
     <h2>Servicios Disponibles</h2>
     <ul>
-        @foreach ($services as $service)
+        @foreach ($eventos as $evento)
             <li>
-                <strong>{{ $service['name'] }}</strong> - ${{ $service['price'] }}
+                <strong>{{ $evento['name'] }}</strong> - ${{ $evento['price'] }}
             </li>
         @endforeach
     </ul>
