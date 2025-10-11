@@ -6,6 +6,7 @@
 </head>
 <body>
     <h1>Iniciar sesión</h1>
+    <p class="lead">Por favor, ingresa tus credenciales</p>
 
     @if ($errors->any())
         <p style="color:red;">{{ $errors->first('login') }}</p>
