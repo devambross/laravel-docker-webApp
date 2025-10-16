@@ -34,7 +34,7 @@
         <!-- Segundo bloque -->
         <div class="lista-container">
             <h2>Lista de invitados</h2>
-            <table border="1">
+            <table border="0">
                 <tr>
                     <th>DNI</th>
                     <th>Nombre</th>
@@ -129,6 +129,8 @@
 
     .btn-eliminar {
         background-color: #cc3d3d;
+        position: relative;
+        margin: auto;
     }
 
     .btn-eliminar:hover {
