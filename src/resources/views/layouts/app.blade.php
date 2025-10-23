@@ -55,12 +55,6 @@
             min-height: 70vh;
             background: #fdfdfd;
         }
-        footer {
-            background: #f1f1f1;
-            text-align: center;
-            padding: 1rem;
-            color: #555;
-        }
     </style>
 </head>
 <body>
@@ -80,9 +74,5 @@
     <main>
         @yield('content')
     </main>
-
-    <footer>
-        <p>© 2025 Rinconada Country Club</p>
-    </footer>
 </body>
 </html>

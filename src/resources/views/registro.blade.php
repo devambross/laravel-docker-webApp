@@ -11,6 +11,7 @@
 
             <label>Área/Actividad:</label>
             <select>
+                <option value="todas">Todas</option>
                 <option value="area1">Área 1</option>
                 <option value="area2">Área 2</option>
                 <option value="area3">Área 3</option>
