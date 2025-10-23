@@ -114,6 +114,7 @@
         display: flex;
         flex-direction: column;
         overflow-x: auto;
+        min-height: 470.917px;
     }
 
     /* ==== FILTROS ==== */
