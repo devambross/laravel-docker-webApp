@@ -55,7 +55,7 @@
     <div class="eventos-p2">
         <h2>Lista de participantes</h2>
         <div class="tabla-eventos">
-            <table border="0">
+            <table>
                 <thead>
                     <x-fila-header-eventos/>
                 </thead>
@@ -84,7 +84,7 @@
 
 
 <style>
-        /* ==== CONTENEDOR PRINCIPAL ==== */
+        /*Contenedor Principal*/
     .eventos-container {
         display: flex;
         justify-content: space-between;
@@ -94,7 +94,7 @@
         font-family: 'Segoe UI', Tahoma, sans-serif;
     }
 
-    /* ==== BLOQUES PRINCIPALES ==== */
+    /*Contenedores Secundarios*/
     .eventos-p1 {
         background: #fff;
         border-radius: 10px;
@@ -117,7 +117,7 @@
         min-height: 470.917px;
     }
 
-    /* ==== FILTROS ==== */
+    /*Filtro socios*/
     .filtro-socios {
         display: flex;
         flex-direction: column;
@@ -151,7 +151,7 @@
         border-color: #78B548;
     }
 
-    /* ==== INFORMACIÓN DEL SOCIO ==== */
+    /*Informacion Del Socio*/
     .informacion-socio {
         display: flex;
         gap: 20px;
@@ -164,7 +164,6 @@
     .foto-socio img {
         width: 180px;
         height: 230px;
-        /*border-radius: 50%;*/
         object-fit: cover;
         border: 2px solid #78B548;
     }
@@ -178,7 +177,6 @@
 
     .detalles-socio div {
         display: flex;
-        /*gap: 6px;*/
     }
 
     .detalles-socio p {
@@ -191,7 +189,6 @@
     .dni-section, .nombres-section, .apellidos-section, .rol-section, .estado-section {
         display: flex;
         flex-direction: column;
-        /*gap: 8px;*/
 
     }
     .dniinf, .nombreinf, .apelidosinf, .rolinf, .estadoinf {
@@ -199,7 +196,7 @@
         color: #555;
     }
 
-    /* ==== LISTA DE PARTICIPANTES ==== */
+    /*Lista De Asistentes*/
     .eventos-p2 h2 {
         text-align: center;
         margin-bottom: 12px;
@@ -208,7 +205,7 @@
         padding-bottom: 4px;
     }
 
-    /* ==== TABLA ==== */
+    /*Tabla De Asistentes*/
     .tabla-eventos {
         flex: 1;
         overflow-y: auto;
@@ -247,7 +244,7 @@
         background-color: #eaf6e3;
     }
 
-    /* ==== RESPONSIVE ==== */
+    /*Responsivo*/
     @media (max-width: 900px) {
         .eventos-container {
             flex-direction: column;
@@ -270,6 +267,7 @@
         }
     }
 
+    /*Contenido Tabla*/
     .fila-socio-eventos td {
         padding: 0.75rem;
         border-bottom: 1px solid #ddd;
@@ -284,6 +282,7 @@
         align-items: center;
     }
 
+    /*Encabesado tabla*/
     .fila-header-eventos th {
         background-color: #003C3E;
         color: white;

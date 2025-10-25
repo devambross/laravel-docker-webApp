@@ -56,7 +56,7 @@
     <div class="entrada-p2">
         <h2>Árbol familiar e invitados</h2>
         <div class="tabla-entrada">
-            <table border="0">
+            <table>
                 <thead>
                     <x-fila-header />
                 </thead>
