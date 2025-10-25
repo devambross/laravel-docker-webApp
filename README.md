@@ -18,7 +18,7 @@ Para correr el proyecto debes de tener Docker instalado
 git clone https://github.com/devambross/laravel-docker-webApp.git
 cd tu-repo ##Lo guardas donde creas conveniente
 ```
-2. Abre un teminal en la ruta donde clonaste el proyecto e ejecuta:
+2. Abre un teminal en la ruta donde clonaste el proyecto y ejecuta:
 ```bash
 docker compose up -d --build
 ```
