@@ -245,7 +245,7 @@
     }
 
     /*Responsivo*/
-    @media (max-width: 900px) {
+    @media (max-width: 1030px) {
         .eventos-container {
             flex-direction: column;
             flex-wrap: wrap;
