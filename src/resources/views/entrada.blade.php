@@ -4,6 +4,114 @@
 
 @section('content')
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Función para actualizar el panel izquierdo con los datos del socio
+    function updateSocioInfo(dni) {
+        $.get(`/api/socio?dni=${dni}`, function(socio) {
+            if (socio) {
+                $('.dniinf').text(socio.dni);
+                $('.nombreinf').text(socio.nombres);
+                $('.apelidosinf').text(socio.apellidos);
+                $('.rolinf').text(socio.rol);
+                $('.estadoinf').text(socio.estado);
+                $('.foto-socio img').attr('src', socio.foto);
+            }
+        });
+    }
+
+    function loadParticipantesByArea(area, codigoSocio = null) {
+        const tbody = $('.tabla-entrada tbody');
+        tbody.empty();
+
+        // Spinner for entrada
+        if (!$('#spinner-entrada').length) {
+            $('.tabla-entrada').prepend('<div id="spinner-entrada" class="large-spinner" style="display:none" aria-hidden="true"></div>');
+        }
+        const $eSpinner = $('#spinner-entrada');
+
+        if (!area || area === 'todas') {
+            tbody.append(`<tr class="fila-empty"><td colspan="5">Seleccione un área para ver participantes</td></tr>`);
+            return;
+        }
+
+        let url = `/api/entrada/participantes?area=${encodeURIComponent(area)}`;
+        if (codigoSocio) {
+            url += `&codigo_socio=${encodeURIComponent(codigoSocio)}`;
+        }
+
+        $eSpinner.show();
+        $.get(url)
+            .done(function(participantes) {
+                tbody.empty();
+                if (!participantes || participantes.length === 0) {
+                    tbody.append(`<tr class="fila-empty"><td colspan="5">No hay participantes para esta área</td></tr>`);
+                    return;
+                }
+
+                participantes.forEach(p => {
+                    const row = $(`
+                        <tr class="fila-socio" data-dni="${p.dni}">
+                            <td>${p.dni}</td>
+                            <td>${p.nombre}</td>
+                            <td>${p.edad ?? ''}</td>
+                            <td>${p.relacion ?? ''}</td>
+                            <td><input type="checkbox" class="check-socio" ${p.checked ? 'checked' : ''} disabled></td>
+                        </tr>
+                    `);
+                    tbody.append(row);
+                });
+            })
+            .fail(function() {
+                tbody.append(`<tr class="fila-empty"><td colspan="5">Error al cargar participantes</td></tr>`);
+            })
+            .always(function() {
+                $eSpinner.hide();
+            });
+    }
+
+    // Manejar cambio de área
+    // Debounce helper (reused)
+    function debounce(fn, delay) {
+        let t;
+        return function() {
+            const args = arguments;
+            clearTimeout(t);
+            t = setTimeout(function() { fn.apply(null, args); }, delay);
+        };
+    }
+
+    $('#area').on('change', function() {
+        const area = $(this).val();
+        const codigo = $('#codigo_socio').val();
+        // Si hay código, filtrar por código; si no, mostrar todos de área
+        loadParticipantesByArea(area, codigo || null);
+    });
+
+    // Manejar cambio de código del socio con debounce
+    $('#codigo_socio').on('input', debounce(function() {
+        const codigo = $(this).val();
+        const area = $('#area').val();
+        if (!area || area === 'todas') {
+            const tbody = $('.tabla-entrada tbody');
+            tbody.empty();
+            tbody.append(`<tr class="fila-empty"><td colspan="5">Seleccione un área para filtrar por código</td></tr>`);
+            return;
+        }
+        loadParticipantesByArea(area, codigo);
+    }, 300));
+
+    // Clic en fila para resaltar y cargar info
+    $(document).on('click', '.fila-socio', function() {
+        $('.fila-socio.selected').removeClass('selected');
+        $(this).addClass('selected');
+        const dni = $(this).data('dni');
+        updateSocioInfo(dni);
+    });
+});
+</script>
+
 <div class="entrada-container">
     <div class="entrada-p1">
         <div class="filtro-socios">
@@ -61,8 +169,7 @@
                     <x-fila-header />
                 </thead>
                 <tbody>
-                    <x-fila-socio dni="12345678" nombre="Juan Perez" edad="30" relacion="Hijo" :checked="true" />
-                    <x-fila-socio dni="87654321" nombre="Maria Gomez" edad="28" relacion="Esposa" :checked="false" />
+                    {{-- Filas generadas dinámicamente vía JS desde /api/entrada/participantes --}}
                 </tbody>
 
             </table>
@@ -231,10 +338,6 @@
         z-index: 1;
     }
 
-    .tabla-entrada tr:nth-child(even) {
-        background-color: #f8f8f8;
-    }
-
     .tabla-entrada tr:hover {
         background-color: #eaf6e3;
     }
@@ -271,6 +374,7 @@
     .fila-socio td {
         padding: 0.75rem;
         border-bottom: 1px solid #ddd;
+        text-align: left;
     }
     .fila-socio:hover {
         background-color: #f1f1f1;
@@ -279,8 +383,35 @@
         width: 25px;
         height: 25px;
         cursor: pointer;
-        align-items: center;
     }
+
+    /* Fila seleccionada */
+    .fila-socio.selected {
+        background-color: #caf3faff;
+    }
+
+    .fila-empty td {
+        text-align: center;
+        color: #777;
+        padding: 1rem;
+    }
+
+    /* Spinner styles reused from eventos view */
+    .large-spinner {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 36px;
+        height: 36px;
+        border: 4px solid rgba(0,0,0,0.08);
+        border-top-color: #78B548;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        z-index: 10;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
 
 
 </style>

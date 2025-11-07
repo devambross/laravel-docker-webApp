@@ -4,16 +4,147 @@
 
 @section('content')
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    let currentEventoId = null;
+
+    // Cargar eventos en el select
+    const $eventoSpinner = $('<div id="spinner-eventos" class="small-spinner" style="display:none" aria-hidden="true"></div>');
+    $('#evento').after($eventoSpinner);
+
+    function loadEventos() {
+        $eventoSpinner.show();
+        $.get('/api/eventos')
+            .done(function(eventos) {
+                const select = $('#evento');
+                select.find('option:not([value=""])').remove();
+                eventos.forEach(evento => {
+                    select.append(`<option value="${evento.id}">${evento.nombre}</option>`);
+                });
+            })
+            .always(function() {
+                $eventoSpinner.hide();
+            });
+    }
+
+    loadEventos();
+
+    function updateSocioInfo(dni) {
+        $.get(`/api/socio?dni=${dni}`, function(socio) {
+            if (socio) {
+                $('.dniinf').text(socio.dni);
+                $('.nombreinf').text(socio.nombres);
+                $('.apelidosinf').text(socio.apellidos);
+                $('.rolinf').text(socio.rol);
+                $('.estadoinf').text(socio.estado);
+                $('.foto-socio img').attr('src', socio.foto);
+            }
+        });
+    }
+
+    function loadParticipantes(eventoId, codigoSocio = null) {
+        const tbody = $('.tabla-eventos tbody');
+        tbody.empty();
+
+        // Spinner para carga de participantes
+        if (!$('#spinner-participantes').length) {
+            $('.tabla-eventos').prepend('<div id="spinner-participantes" class="large-spinner" style="display:none" aria-hidden="true"></div>');
+        }
+        const $pSpinner = $('#spinner-participantes');
+
+        if (!eventoId) {
+            // Mostrar mensaje indicando que se debe seleccionar un evento
+            tbody.append(`<tr class="fila-empty"><td colspan="6">Seleccione un evento para ver participantes</td></tr>`);
+            return;
+        }
+
+        let url = `/api/participantes?evento_id=${eventoId}`;
+        if (codigoSocio) {
+            url += `&codigo_socio=${codigoSocio}`;
+        }
+
+        $pSpinner.show();
+        $.get(url)
+            .done(function(participantes) {
+                tbody.empty();
+
+                if (!participantes || participantes.length === 0) {
+                    tbody.append(`<tr class="fila-empty"><td colspan="6">No hay participantes para este evento</td></tr>`);
+                    return;
+                }
+
+                participantes.forEach(p => {
+                // Usar las mismas clases/estructura que el componente blade para mantener estilos
+                const row = $(`
+                    <tr class="fila-socios-eventos" data-dni="${p.dni}">
+                        <td>${p.dni}</td>
+                        <td>${p.nombre}</td>
+                        <td>${p.mesa}</td>
+                        <td>${p.asiento}</td>
+                        <td>
+                            <input type="checkbox" class="check-socio" ${p.checked1 ? 'checked' : ''} disabled>
+                        </td>
+                        <td>
+                            <input type="checkbox" class="check-socio" ${p.checked2 ? 'checked' : ''} disabled>
+                        </td>
+                    </tr>
+                `);
+                tbody.append(row);
+                });
+            })
+            .fail(function() {
+                tbody.append(`<tr class="fila-empty"><td colspan="6">Error al cargar participantes</td></tr>`);
+            })
+            .always(function() {
+                $pSpinner.hide();
+            });
+    }
+
+    // Manejar cambio de evento
+    $('#evento').on('change', function() {
+        currentEventoId = $(this).val();
+        $('#codigo_socio').val(''); // Limpiar código de socio
+        loadParticipantes(currentEventoId);
+    });
+
+    // Debounce helper
+    function debounce(fn, delay) {
+        let t;
+        return function() {
+            const args = arguments;
+            clearTimeout(t);
+            t = setTimeout(function() { fn.apply(null, args); }, delay);
+        };
+    }
+
+    // Buscar socio por código con debounce
+    $('#codigo_socio').on('input', debounce(function() {
+        const codigo = $(this).val();
+        if (currentEventoId) {
+            loadParticipantes(currentEventoId, codigo);
+        }
+    }, 300));
+
+    // Manejar clic en fila de participante y resaltar la fila seleccionada
+    $(document).on('click', '.fila-socios-eventos', function() {
+        // Resaltar selección (una sola fila seleccionada)
+        $('.fila-socios-eventos.selected').removeClass('selected');
+        $(this).addClass('selected');
+
+        const dni = $(this).data('dni');
+        updateSocioInfo(dni);
+    });
+});
+</script>
+
 <div class="eventos-container">
     <div class="eventos-p1">
         <div class="filtro-socios">
             <div class="evento_filtro">
                 <label for="evento">Evento:</label>
                 <select id="evento" name="evento">
-                    <option value="todas">Todos</option>
-                    <option value="evento1">Evento 1</option>
-                    <option value="evento2">Evento 2</option>
-                    <option value="evento3">Evento 3</option>
+                    <option value="">-- Seleccione evento --</option>
                 </select>
             </div>
             <div class="codigo_filtro">
@@ -60,22 +191,7 @@
                     <x-fila-header-eventos/>
                 </thead>
                 <tbody>
-                    <x-fila-socio-eventos dni="12345678" nombre="Juan" mesa="DU" asiento="DU" :checked1="true" :checked2="false" />
-                    <x-fila-socio-eventos dni="87654321" nombre="Maria" mesa="DU" asiento="DU" :checked1="false" :checked2="true" />
-                    <x-fila-socio-eventos dni="12345678" nombre="Juan" mesa="DU" asiento="DU" :checked1="true" :checked2="false" />
-                    <x-fila-socio-eventos dni="87654321" nombre="Maria" mesa="DU" asiento="DU" :checked1="false" :checked2="true" />
-                    <x-fila-socio-eventos dni="12345678" nombre="Juan" mesa="DU" asiento="DU" :checked1="true" :checked2="false" />
-                    <x-fila-socio-eventos dni="87654321" nombre="Maria" mesa="DU" asiento="DU" :checked1="false" :checked2="true" />
-                    <x-fila-socio-eventos dni="12345678" nombre="Juan" mesa="DU" asiento="DU" :checked1="true" :checked2="false" />
-                    <x-fila-socio-eventos dni="87654321" nombre="Maria" mesa="DU" asiento="DU" :checked1="false" :checked2="true" />
-                    <x-fila-socio-eventos dni="12345678" nombre="Juan" mesa="DU" asiento="DU" :checked1="true" :checked2="false" />
-                    <x-fila-socio-eventos dni="87654321" nombre="Maria" mesa="DU" asiento="DU" :checked1="false" :checked2="true" />
-                    <x-fila-socio-eventos dni="12345678" nombre="Juan" mesa="DU" asiento="DU" :checked1="true" :checked2="false" />
-                    <x-fila-socio-eventos dni="87654321" nombre="Maria" mesa="DU" asiento="DU" :checked1="false" :checked2="true" />
-                    <x-fila-socio-eventos dni="12345678" nombre="Juan" mesa="DU" asiento="DU" :checked1="true" :checked2="false" />
-                    <x-fila-socio-eventos dni="87654321" nombre="Maria" mesa="DU" asiento="DU" :checked1="false" :checked2="true" />
-                    <x-fila-socio-eventos dni="12345678" nombre="Juan" mesa="DU" asiento="DU" :checked1="true" :checked2="false" />
-                    <x-fila-socio-eventos dni="87654321" nombre="Maria" mesa="DU" asiento="DU" :checked1="false" :checked2="true" />
+                    {{-- Las filas se generan dinámicamente vía JS desde /api/participantes --}}
                 </tbody>
             </table>
         </div>
@@ -224,7 +340,7 @@
     .tabla-eventos th,
     .tabla-eventos td {
         padding: 8px;
-        text-align: center;
+        /*text-align: left;*/
         border-bottom: 1px solid #ddd;
     }
 
@@ -234,10 +350,6 @@
         position: sticky;
         top: 0;
         z-index: 1;
-    }
-
-    .tabla-eventos tr:nth-child(even) {
-        background-color: #f8f8f8;
     }
 
     .tabla-eventos tr:hover {
@@ -271,6 +383,7 @@
     .fila-socio-eventos td {
         padding: 0.75rem;
         border-bottom: 1px solid #ddd;
+        text-align: left;
     }
     .fila-socio-eventos:hover {
         background-color: #f1f1f1;
@@ -289,6 +402,47 @@
         padding: 0.75rem;
         text-align: left;
     }
+
+    /* Fila seleccionada */
+    .fila-socios-eventos.selected {
+        background-color: #caf3faff; /* tono verde claro */
+    }
+
+    .fila-empty td {
+        text-align: center;
+        color: #777;
+        padding: 1rem;
+    }
+
+    /* Small spinner (inline near selects) */
+    .small-spinner {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 3px solid rgba(0,0,0,0.1);
+        border-top-color: #78B548;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+
+    /* Large spinner (over table) */
+    .large-spinner {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 36px;
+        height: 36px;
+        border: 4px solid rgba(0,0,0,0.08);
+        border-top-color: #78B548;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        z-index: 10;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
 
 </style>
 @endsection
