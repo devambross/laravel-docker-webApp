@@ -2,27 +2,28 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #fdfdfd;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #2c5f2d 0%, #1e4620 100%);
             color: #333;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 1rem;
         }
 
         .login-container {
             width: 100%;
             max-width: 420px;
-            background-color: #fafafad2;
-            border: 1px solid #003C3E;
-            border-radius: 8px;
-            padding: 2rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 2.5rem;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
 
@@ -33,8 +34,8 @@
             align-items: center;
             width: 110px;
             height: 110px;
-            border-radius: 50%; /* redondo */
-            margin-bottom: 1rem;
+            border-radius: 50%;
+            margin-bottom: 1.5rem;
         }
 
         .logo {
@@ -43,43 +44,55 @@
         }
 
         h1 {
-            color: #003C3E;
+            color: #78B548;
             margin-bottom: 0.5rem;
+            font-size: 1.8rem;
         }
 
         p.lead {
             color: #555;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
         }
 
         label {
-            font-weight: bold;
+            font-weight: 600;
             display: block;
             text-align: left;
             margin-top: 1rem;
+            color: #333;
         }
 
         input[type="email"],
         input[type="password"] {
             width: 100%;
-            padding: 0.6rem;
+            padding: 0.75rem;
             margin-top: 0.4rem;
             border: 1px solid #ccc;
-            border-radius: 4px;
+            border-radius: 6px;
             box-sizing: border-box;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #78B548;
         }
 
         button {
-            background-color: #003C3E;
+            background-color: #78B548;
             color: white;
             border: none;
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.85rem;
             margin-top: 1.5rem;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             transition: background-color 0.3s ease;
             font-size: 1rem;
+            font-weight: 600;
         }
 
         button:hover {
@@ -87,15 +100,36 @@
         }
 
         .error {
-            color: red;
+            color: #cc3d3d;
+            background-color: #ffe6e6;
+            padding: 0.75rem;
+            border-radius: 6px;
             text-align: center;
-            margin-top: 0.5rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
         }
 
         @media (max-width: 600px) {
+            body {
+                padding: 0.5rem;
+            }
+
             .login-container {
-                margin: 1rem;
                 padding: 1.5rem;
+                max-width: 100%;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .logo-container {
+                width: 90px;
+                height: 90px;
+            }
+
+            .logo {
+                width: 60px;
             }
         }
     </style>

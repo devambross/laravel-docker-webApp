@@ -34,6 +34,48 @@ class EventoService
             ],
         ];
     }
+
+    /**
+     * Obtener todos los participantes asociados a un código de socio (en todas las áreas y eventos).
+     */
+    public function getParticipantesByCodigo($codigoSocio)
+    {
+        if (!$codigoSocio) {
+            return [];
+        }
+
+        $areaKeys = [
+            'area1','area2','area3','piscina','gimnasio','cancha','spa',
+            'evento_1','evento_2','evento_3','evento_4'
+        ];
+
+        $results = [];
+        $seenDnis = [];
+
+        foreach ($areaKeys as $a) {
+            $list = $this->getParticipantesByArea($a, $codigoSocio);
+            if ($list && count($list) > 0) {
+                // Normalize entries: ensure keys like 'checked' etc exist consistently
+                foreach ($list as $item) {
+                    if (isset($seenDnis[$item['dni']])) {
+                        continue; // ya agregado
+                    }
+                    $normalized = [
+                        'dni' => $item['dni'],
+                        'nombre' => $item['nombre'],
+                        'edad' => $item['edad'] ?? null,
+                        'relacion' => $item['relacion'] ?? ($item['mesa'] ? 'Participante' : 'visiante'),
+                        'checked' => $item['checked'] ?? ($item['checked1'] ?? false),
+                        'codigo_socio' => $item['codigo_socio']
+                    ];
+                    $results[] = $normalized;
+                    $seenDnis[$item['dni']] = true;
+                }
+            }
+        }
+
+        return array_values($results);
+    }
     public function getSocio($dni)
     {
         // Simulación de datos de socios y sus relacionados (por DNI)
@@ -45,7 +87,7 @@ class EventoService
                 'rol' => 'Socio Titular',
                 'estado' => 'Activo',
                 'codigo' => '12345',
-                'foto' => 'https://e7.pngegg.com/pngimages/513/311/png-clipart-silhouette-male-silhouette-animals-head-thumbnail.png'
+                'foto' => 'https://i1.rgstatic.net/ii/profile.image/11431281172222146-1688472944064_Q512/Juan-Perez-Gonzalez-7.jpg'
             ],
             '87654321' => [
                 'dni' => '87654321',
@@ -54,7 +96,7 @@ class EventoService
                 'rol' => 'Familiar',
                 'estado' => 'Activo',
                 'codigo' => '12345',
-                'foto' => 'https://e7.pngegg.com/pngimages/513/311/png-clipart-silhouette-male-silhouette-animals-head-thumbnail.png'
+                'foto' => 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRut9ihaZHt3s7pZDnM02epDxgGklSdA0aU9uPxWi52Vcsn1yaYQVpKVPdQ4cjoIRaGw-k&usqp=CAU'
             ],
             '11223344' => [
                 'dni' => '11223344',
@@ -63,7 +105,7 @@ class EventoService
                 'rol' => 'Familiar',
                 'estado' => 'Activo',
                 'codigo' => '12345',
-                'foto' => 'https://e7.pngegg.com/pngimages/513/311/png-clipart-silhouette-male-silhouette-animals-head-thumbnail.png'
+                'foto' => 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9iz0AVZLtG5wWM3Xra4W8XoF3MZERmdFg_A&s'
             ],
             '99887766' => [
                 'dni' => '99887766',
@@ -72,7 +114,7 @@ class EventoService
                 'rol' => 'Invitado',
                 'estado' => 'Activo',
                 'codigo' => '54321',
-                'foto' => 'https://e7.pngegg.com/pngimages/513/311/png-clipart-silhouette-male-silhouette-animals-head-thumbnail.png'
+                'foto' => 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSK_3QNSD8IjnwkvkQJgKcXblYvjvokyGl4uA&s'
             ],
             // Event 2 personas
             '22334455' => [
@@ -82,7 +124,7 @@ class EventoService
                 'rol' => 'Socio Titular',
                 'estado' => 'Activo',
                 'codigo' => '22222',
-                'foto' => 'https://e7.pngegg.com/pngimages/513/311/png-clipart-silhouette-male-silhouette-animals-head-thumbnail.png'
+                'foto' => 'https://imagessl.casadellibro.com/img/autores/w/Luc%C3%83%C2%ADa%20Mart%C3%83%C2%ADnez.webp'
             ],
             '33445566' => [
                 'dni' => '33445566',
@@ -91,7 +133,7 @@ class EventoService
                 'rol' => 'Invitado',
                 'estado' => 'Activo',
                 'codigo' => '22222',
-                'foto' => 'https://e7.pngegg.com/pngimages/513/311/png-clipart-silhouette-male-silhouette-animals-head-thumbnail.png'
+                'foto' => 'https://img.a.transfermarkt.technology/portrait/big/1029758-1736796920.jpg?lm=1'
             ],
             // Event 3 personas
             '44556677' => [
@@ -101,7 +143,7 @@ class EventoService
                 'rol' => 'Socio Titular',
                 'estado' => 'Activo',
                 'codigo' => '33333',
-                'foto' => 'https://e7.pngegg.com/pngimages/513/311/png-clipart-silhouette-male-silhouette-animals-head-thumbnail.png'
+                'foto' => 'https://cloud.ctbuh.org/people/color/sofia-ramos-1673024187.jpg'
             ],
             '55667788' => [
                 'dni' => '55667788',
@@ -110,7 +152,7 @@ class EventoService
                 'rol' => 'Familiar',
                 'estado' => 'Activo',
                 'codigo' => '33333',
-                'foto' => 'https://e7.pngegg.com/pngimages/513/311/png-clipart-silhouette-male-silhouette-animals-head-thumbnail.png'
+                'foto' => 'https://www.famousbirthdays.com/faces/torres-diego-image.jpg'
             ],
             '66778899' => [
                 'dni' => '66778899',
@@ -119,7 +161,7 @@ class EventoService
                 'rol' => 'Invitado',
                 'estado' => 'Activo',
                 'codigo' => '54321',
-                'foto' => 'https://e7.pngegg.com/pngimages/513/311/png-clipart-silhouette-male-silhouette-animals-head-thumbnail.png'
+                'foto' => 'https://s3.amazonaws.com/files.pucp.edu.pe/profesor/img-docentes/herrera-burstein-marcos-pompeyo-00003942.jpg'
             ],
         ];
 
@@ -273,9 +315,63 @@ class EventoService
                 [ 'dni' => '55667788', 'nombre' => 'Diego Torres', 'edad' => 20, 'relacion' => 'Hijo', 'checked' => false, 'codigo_socio' => '33333' ],
             ],
             // permitir pasar 'evento_{id}' para usar la lista de eventos simulada
-            'evento_1' => $this->getParticipantes(1),
-            'evento_2' => $this->getParticipantes(2),
-            'evento_3' => $this->getParticipantes(3),
+
+            'evento_1' => array_map(function($p) {
+                return [
+                    'dni' => $p['dni'],
+                    'nombre' => $p['nombre'],
+                    'edad' => null,
+                    'relacion' => isset($p['mesa']) ? 'Participante' : 'Visitante',
+                    'checked' => $p['checked1'] ?? false,
+                    'codigo_socio' => $p['codigo_socio']
+                ];
+            }, $this->getParticipantes(1)),
+            'evento_2' => array_map(function($p) {
+                return [
+                    'dni' => $p['dni'],
+                    'nombre' => $p['nombre'],
+                    'edad' => null,
+                    'relacion' => isset($p['mesa']) ? 'Participante' : 'Visitante',
+                    'checked' => $p['checked1'] ?? false,
+                    'codigo_socio' => $p['codigo_socio']
+                ];
+            }, $this->getParticipantes(2)),
+            'evento_3' => array_map(function($p) {
+                return [
+                    'dni' => $p['dni'],
+                    'nombre' => $p['nombre'],
+                    'edad' => null,
+                    'relacion' => isset($p['mesa']) ? 'Participante' : 'Visitante',
+                    'checked' => $p['checked1'] ?? false,
+                    'codigo_socio' => $p['codigo_socio']
+                ];
+            }, $this->getParticipantes(3)),
+            'evento_4' => array_map(function($p) {
+                return [
+                    'dni' => $p['dni'],
+                    'nombre' => $p['nombre'],
+                    'edad' => null,
+                    'relacion' => isset($p['mesa']) ? 'Participante' : 'Visitante',
+                    'checked' => $p['checked1'] ?? false,
+                    'codigo_socio' => $p['codigo_socio']
+                ];
+            }, $this->getParticipantes(4)),
+            // otras áreas comunes
+            'piscina' => [
+                [ 'dni' => '12345678', 'nombre' => 'Juan Pérez González', 'edad' => 45, 'relacion' => 'Titular', 'checked' => true, 'codigo_socio' => '12345' ],
+                [ 'dni' => '66778899', 'nombre' => 'Marcos Herrera', 'edad' => 38, 'relacion' => 'Invitado', 'checked' => false, 'codigo_socio' => '54321' ],
+            ],
+            'gimnasio' => [
+                [ 'dni' => '22334455', 'nombre' => 'Lucía Martínez', 'edad' => 35, 'relacion' => 'Titular', 'checked' => true, 'codigo_socio' => '22222' ],
+                [ 'dni' => '33445566', 'nombre' => 'Carlos Gómez', 'edad' => 28, 'relacion' => 'Invitado', 'checked' => false, 'codigo_socio' => '22222' ],
+            ],
+            'cancha' => [
+                [ 'dni' => '44556677', 'nombre' => 'Sofía Ramos', 'edad' => 50, 'relacion' => 'Titular', 'checked' => true, 'codigo_socio' => '33333' ],
+                [ 'dni' => '55667788', 'nombre' => 'Diego Torres', 'edad' => 20, 'relacion' => 'Hijo', 'checked' => false, 'codigo_socio' => '33333' ],
+            ],
+            'spa' => [
+                [ 'dni' => '99887766', 'nombre' => 'Ana Silva Ruiz', 'edad' => 30, 'relacion' => 'Invitado', 'checked' => true, 'codigo_socio' => '54321' ],
+            ],
         ];
 
         if (!isset($areas[$area])) {

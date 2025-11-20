@@ -60,4 +60,16 @@ class EventoController extends Controller
         $participantes = $this->eventoService->getParticipantesByArea($area, $codigoSocio);
         return response()->json($participantes);
     }
+
+    // Obtener participantes por código (en todas las áreas)
+    public function getParticipantesByCodigo(Request $request)
+    {
+        $codigo = $request->get('codigo_socio');
+        if (!$codigo) {
+            return response()->json([]);
+        }
+
+        $participantes = $this->eventoService->getParticipantesByCodigo($codigo);
+        return response()->json($participantes);
+    }
 }
