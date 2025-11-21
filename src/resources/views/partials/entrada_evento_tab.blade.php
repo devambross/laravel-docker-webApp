@@ -61,6 +61,22 @@
         </div>
     </div>
 
+    <!-- Spinner de carga -->
+    <div id="spinner_entrada_evento" class="loading-spinner-large" style="display:none;">
+        <div class="spinner-busqueda"></div>
+        <p style="margin-top: 10px; color: #666;">Cargando participantes...</p>
+    </div>
+
+    <!-- Mensaje de error -->
+    <div id="error_entrada_evento" class="error-message-section" style="display:none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span id="error_entrada_evento_texto">Error al cargar los participantes</span>
+    </div>
+
     <!-- Tabla de participantes -->
     <div class="participants-table-container">
         <div class="table-wrapper">
@@ -518,19 +534,152 @@
 </style>
 
 <script>
-    function loadEventoParticipantes() {
+    async function cargarEventosEnSelector() {
+        try {
+            const response = await fetch('/api/eventos');
+            const eventos = await response.json();
+
+            const select = document.getElementById('evento_selector');
+            select.innerHTML = '<option value="">Seleccione un evento</option>';
+
+            eventos.forEach(evento => {
+                const option = document.createElement('option');
+                option.value = evento.id;
+                option.textContent = `${evento.nombre} - ${evento.fecha}`;
+                select.appendChild(option);
+            });
+
+            // Seleccionar el primer evento si existe
+            if (eventos.length > 0) {
+                select.value = eventos[0].id;
+                loadEventoParticipantes();
+            }
+        } catch (error) {
+            console.error('[Entrada Evento] Error cargando eventos:', error);
+        }
+    }
+
+    async function loadEventoParticipantes() {
         const eventoId = document.getElementById('evento_selector').value;
+        const spinner = document.getElementById('spinner_entrada_evento');
+        const errorDiv = document.getElementById('error_entrada_evento');
+        const errorTexto = document.getElementById('error_entrada_evento_texto');
+
         console.log('[Entrada Evento] Cargando participantes para:', eventoId);
 
-        // Aquí iría la llamada AJAX al backend para cargar los participantes del evento
-        // Actualizar la información del evento
-        const eventoOption = document.querySelector('#evento_selector option:checked');
-        const eventoText = eventoOption.text;
+        if (!eventoId) {
+            document.getElementById('evento_participants_tbody').innerHTML =
+                '<tr><td colspan="6" style="text-align:center; color:#999;">Seleccione un evento</td></tr>';
+            return;
+        }
 
-        // Extraer nombre y fecha del texto del option
-        const parts = eventoText.split(' - ');
-        document.getElementById('info_evento_nombre').textContent = parts[0] || eventoText;
-        document.getElementById('info_evento_fecha').textContent = parts[1] || '2025-12-15';
+        // Mostrar spinner
+        spinner.style.display = 'flex';
+        errorDiv.style.display = 'none';
+
+        try {
+            // Cargar info del evento
+            const eventoResponse = await fetch(`/api/eventos/${eventoId}`);
+
+            if (!eventoResponse.ok) {
+                throw new Error('Error al cargar información del evento');
+            }
+
+            const evento = await eventoResponse.json();
+
+            document.getElementById('info_evento_nombre').textContent = evento.nombre;
+            document.getElementById('info_evento_fecha').textContent = evento.fecha;
+            document.getElementById('info_evento_area').textContent = evento.area || 'General';
+
+            // Cargar participantes del evento
+            const participantesResponse = await fetch(`/api/participantes/evento/${eventoId}`);
+
+            if (!participantesResponse.ok) {
+                throw new Error('Error al cargar participantes');
+            }
+
+            const participantes = await participantesResponse.json();
+
+            // Ocultar spinner
+            spinner.style.display = 'none';
+
+            mostrarParticipantesEvento(participantes);
+            actualizarEstadisticasEvento(participantes);
+        } catch (error) {
+            console.error('[Entrada Evento] Error cargando datos:', error);
+
+            // Ocultar spinner
+            spinner.style.display = 'none';
+
+            // Mostrar error
+            errorTexto.textContent = 'Error al cargar los datos del evento. Por favor, intente nuevamente.';
+            errorDiv.style.display = 'flex';
+
+            document.getElementById('evento_participants_tbody').innerHTML =
+                '<tr><td colspan="6" style="text-align:center; color:#e74c3c;">Error al cargar participantes</td></tr>';
+        }
+    }
+
+    function mostrarParticipantesEvento(participantes) {
+        const tbody = document.getElementById('evento_participants_tbody');
+        tbody.innerHTML = '';
+
+        if (!participantes || participantes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#999;">No hay participantes en este evento</td></tr>';
+            return;
+        }
+
+        participantes.forEach(p => {
+            const tipo = p.codigo_socio.includes('-INV') ? 'invitado' :
+                         (p.codigo_socio.includes('-') ? 'familiar' : 'socio');
+
+            const invitadoDe = tipo === 'invitado' || tipo === 'familiar' ?
+                `<br><span class="invitado-de">(${tipo === 'invitado' ? 'Inv.' : 'Fam.'} de ${p.codigo_socio.split('-')[0]})</span>` : '';
+
+            const mesaSilla = p.mesa_numero ?
+                `<div class="mesa-silla-info">
+                    <span class="mesa-badge">Mesa ${p.mesa_numero}</span>
+                    <span class="silla-badge">Silla ${p.numero_silla || 'N/A'}</span>
+                </div>` :
+                '<span style="color:#999;">No asignado</span>';
+
+            const row = `
+                <tr>
+                    <td>${p.codigo_socio}${invitadoDe}</td>
+                    <td><span class="badge-type ${tipo}">${tipo}</span></td>
+                    <td>
+                        <div class="participant-name">${p.nombre}</div>
+                        <div class="participant-dni">DNI: ${p.dni || 'N/A'}</div>
+                    </td>
+                    <td>${mesaSilla}</td>
+                    <td class="checkbox-cell">
+                        <label class="checkbox-container">
+                            <input type="checkbox" ${p.entrada_club ? 'checked' : ''}
+                                   onchange="toggleEntradaClub(this, '${p.codigo_socio}', ${p.id})">
+                            <span class="checkmark"></span>
+                        </label>
+                    </td>
+                    <td class="checkbox-cell">
+                        <label class="checkbox-container">
+                            <input type="checkbox" ${p.entrada_evento ? 'checked' : ''}
+                                   onchange="toggleEntradaEvento(this, '${p.codigo_socio}', ${p.id})">
+                            <span class="checkmark"></span>
+                        </label>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function actualizarEstadisticasEvento(participantes) {
+        const total = participantes.length;
+        const entradaClub = participantes.filter(p => p.entrada_club).length;
+        const entradaEvento = participantes.filter(p => p.entrada_evento).length;
+
+        document.querySelector('.stat-item strong').textContent = total;
+        document.getElementById('stats_entrada_club').textContent = entradaClub;
+        document.getElementById('stats_entrada_evento').textContent = entradaEvento;
     }
 
     function buscarEntradaEvento() {
@@ -548,11 +697,10 @@
         // Aquí iría la llamada AJAX al backend para filtrar participantes
     }
 
-    function toggleEntradaClub(checkbox, codigoParticipante) {
+    async function toggleEntradaClub(checkbox, codigoParticipante, participanteId) {
         const isPresent = checkbox.checked;
         console.log('[Entrada Evento] Toggle Entrada Club:', codigoParticipante, isPresent);
 
-        // Actualizar estadísticas
         const statsEl = document.getElementById('stats_entrada_club');
         let count = parseInt(statsEl.textContent);
 
@@ -564,14 +712,36 @@
 
         statsEl.textContent = count;
 
-        // Aquí iría la llamada AJAX al backend para guardar
+        // Guardar en backend
+        try {
+            const eventoId = document.getElementById('evento_selector').value;
+            const response = await fetch('/api/entrada-evento/marcar-entrada-club', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    evento_id: eventoId,
+                    codigo: codigoParticipante,
+                    entrada_club: isPresent
+                })
+            });
+
+            if (!response.ok) throw new Error('Error al guardar');
+            console.log('[Entrada Evento] Entrada Club guardada');
+        } catch (error) {
+            console.error('[Entrada Evento] Error:', error);
+            checkbox.checked = !isPresent;
+            statsEl.textContent = isPresent ? count - 1 : count + 1;
+            alert('Error al guardar. Intente nuevamente.');
+        }
     }
 
-    function toggleEntradaEvento(checkbox, codigoParticipante) {
+    async function toggleEntradaEvento(checkbox, codigoParticipante, participanteId) {
         const isPresent = checkbox.checked;
         console.log('[Entrada Evento] Toggle Entrada Evento:', codigoParticipante, isPresent);
 
-        // Actualizar estadísticas
         const statsEl = document.getElementById('stats_entrada_evento');
         let count = parseInt(statsEl.textContent);
 
@@ -583,7 +753,30 @@
 
         statsEl.textContent = count;
 
-        // Aquí iría la llamada AJAX al backend para guardar
+        // Guardar en backend
+        try {
+            const eventoId = document.getElementById('evento_selector').value;
+            const response = await fetch('/api/entrada-evento/marcar-entrada-evento', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    evento_id: eventoId,
+                    codigo: codigoParticipante,
+                    entrada_evento: isPresent
+                })
+            });
+
+            if (!response.ok) throw new Error('Error al guardar');
+            console.log('[Entrada Evento] Entrada Evento guardada');
+        } catch (error) {
+            console.error('[Entrada Evento] Error:', error);
+            checkbox.checked = !isPresent;
+            statsEl.textContent = isPresent ? count - 1 : count + 1;
+            alert('Error al guardar. Intente nuevamente.');
+        }
     }
 
     function exportarPDFEvento() {
@@ -595,11 +788,24 @@
         }
 
         console.log('[Entrada Evento] Exportando PDF para evento:', eventoId);
-
-        // Aquí iría la lógica para generar el PDF
         alert('Exportando lista de asistencia del evento a PDF...');
-
-        // Ejemplo de llamada al backend:
-        // window.location.href = '/api/entrada/evento/' + eventoId + '/export-pdf';
+        // window.location.href = '/api/entrada-evento/' + eventoId + '/export-pdf';
     }
+
+    // Cargar eventos al iniciar
+    document.addEventListener('DOMContentLoaded', function() {
+        cargarEventosEnSelector();
+
+        // Búsqueda en tiempo real
+        let searchTimeout;
+        document.getElementById('evento_search_codigo').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(buscarEntradaEvento, 500);
+        });
+
+        document.getElementById('evento_search_nombre').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(buscarEntradaEvento, 500);
+        });
+    });
 </script>

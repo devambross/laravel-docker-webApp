@@ -51,6 +51,22 @@
         </div>
     </div>
 
+    <!-- Spinner de carga -->
+    <div id="spinner_entrada_club" class="loading-spinner-large" style="display:none;">
+        <div class="spinner-busqueda"></div>
+        <p style="margin-top: 10px; color: #666;">Cargando datos...</p>
+    </div>
+
+    <!-- Mensaje de error -->
+    <div id="error_entrada_club" class="error-message-section" style="display:none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span id="error_entrada_club_texto">Error al cargar los datos</span>
+    </div>
+
     <!-- Tabla de participantes -->
     <div class="participants-table-container">
         <div class="table-wrapper">
@@ -420,21 +436,169 @@
 </style>
 
 <script>
-    function buscarEntradaClub() {
+    // Cargar eventos en el filtro de área
+    async function cargarEventosEnFiltro() {
+        try {
+            const response = await fetch('/api/eventos');
+            const eventos = await response.json();
+
+            const select = document.getElementById('club_filter_area');
+            select.innerHTML = '<option value="">Todos</option>';
+
+            eventos.forEach(evento => {
+                const option = document.createElement('option');
+                option.value = 'evento_' + evento.id;
+                option.textContent = evento.nombre + ' - ' + evento.fecha;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('[Entrada Club] Error cargando eventos:', error);
+        }
+    }
+
+    async function buscarEntradaClub() {
         const codigo = document.getElementById('club_search_codigo').value.trim();
         const nombre = document.getElementById('club_search_nombre').value.trim();
         const area = document.getElementById('club_filter_area').value;
+        const spinner = document.getElementById('spinner_entrada_club');
+        const errorDiv = document.getElementById('error_entrada_club');
+        const errorTexto = document.getElementById('error_entrada_club_texto');
 
         console.log('[Entrada Club] Buscando:', { codigo, nombre, area });
 
-        // Aquí iría la llamada AJAX al backend para filtrar participantes
+        if (!codigo && !nombre) {
+            cargarTodasLasEntradas();
+            return;
+        }
+
+        // Mostrar spinner
+        spinner.style.display = 'flex';
+        errorDiv.style.display = 'none';
+
+        try {
+            let url = '/api/entrada-club/buscar';
+            const params = new URLSearchParams();
+
+            if (codigo) params.append('codigo', codigo);
+            if (nombre) params.append('nombre', nombre);
+
+            const response = await fetch(url + '?' + params.toString());
+
+            if (!response.ok) {
+                throw new Error('Error en la búsqueda');
+            }
+
+            const data = await response.json();
+
+            // Ocultar spinner
+            spinner.style.display = 'none';
+
+            mostrarResultadosClub(data.participantes || []);
+            actualizarEstadisticasClub(data.participantes || []);
+        } catch (error) {
+            console.error('[Entrada Club] Error en búsqueda:', error);
+
+            // Ocultar spinner
+            spinner.style.display = 'none';
+
+            // Mostrar error
+            errorTexto.textContent = 'Error al buscar participantes. Por favor, intente nuevamente.';
+            errorDiv.style.display = 'flex';
+
+            document.getElementById('club_participants_tbody').innerHTML =
+                '<tr><td colspan="6" style="text-align:center; color:#e74c3c;">Error al buscar participantes</td></tr>';
+        }
     }
 
-    function toggleAsistenciaClub(checkbox, codigoSocio) {
+    async function cargarTodasLasEntradas() {
+        const spinner = document.getElementById('spinner_entrada_club');
+        const errorDiv = document.getElementById('error_entrada_club');
+        const errorTexto = document.getElementById('error_entrada_club_texto');
+
+        // Mostrar spinner
+        spinner.style.display = 'flex';
+        errorDiv.style.display = 'none';
+
+        try {
+            const response = await fetch('/api/entrada-club/listar');
+
+            if (!response.ok) {
+                throw new Error('Error al cargar entradas');
+            }
+
+            const entradas = await response.json();
+
+            // Ocultar spinner
+            spinner.style.display = 'none';
+
+            mostrarResultadosClub(entradas);
+            actualizarEstadisticasClub(entradas);
+        } catch (error) {
+            console.error('[Entrada Club] Error cargando entradas:', error);
+
+            // Ocultar spinner
+            spinner.style.display = 'none';
+
+            // Mostrar error
+            errorTexto.textContent = 'Error al cargar las entradas del club. Por favor, recargue la página.';
+            errorDiv.style.display = 'flex';
+        }
+    }
+
+    function mostrarResultadosClub(participantes) {
+        const tbody = document.getElementById('club_participants_tbody');
+        tbody.innerHTML = '';
+
+        if (!participantes || participantes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#999;">No hay participantes registrados</td></tr>';
+            return;
+        }
+
+        participantes.forEach(p => {
+            const tipo = p.codigo_socio.includes('-INV') ? 'invitado' :
+                         (p.codigo_socio.includes('-') ? 'familiar' : 'socio');
+
+            const invitadoDe = tipo === 'invitado' || tipo === 'familiar' ?
+                `<br><span class="invitado-de">(${tipo === 'invitado' ? 'Inv.' : 'Fam.'} de ${p.codigo_socio.split('-')[0]})</span>` : '';
+
+            const row = `
+                <tr>
+                    <td>${p.codigo_socio}${invitadoDe}</td>
+                    <td><span class="badge-type ${tipo}">${tipo}</span></td>
+                    <td>${p.dni || 'N/A'}</td>
+                    <td>${p.nombre}</td>
+                    <td>
+                        <div class="evento-info">${p.evento_nombre || 'N/A'}</div>
+                        <div class="area-info">${p.area || 'General'}</div>
+                    </td>
+                    <td class="checkbox-cell">
+                        <label class="checkbox-container">
+                            <input type="checkbox" ${p.entrada_club ? 'checked' : ''}
+                                   onchange="toggleAsistenciaClub(this, '${p.codigo_socio}', ${p.id})">
+                            <span class="checkmark"></span>
+                        </label>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function actualizarEstadisticasClub(participantes) {
+        const total = participantes.length;
+        const presentes = participantes.filter(p => p.entrada_club).length;
+        const ausentes = total - presentes;
+
+        document.getElementById('club_total').textContent = total;
+        document.getElementById('club_presentes').textContent = presentes;
+        document.getElementById('club_ausentes').textContent = ausentes;
+    }
+
+    async function toggleAsistenciaClub(checkbox, codigoSocio, participanteId) {
         const isPresent = checkbox.checked;
         console.log('[Entrada Club] Toggle asistencia:', codigoSocio, isPresent);
 
-        // Actualizar estadísticas
+        // Actualizar estadísticas localmente primero
         const presentesEl = document.getElementById('club_presentes');
         const ausentesEl = document.getElementById('club_ausentes');
 
@@ -452,16 +616,69 @@
         presentesEl.textContent = presentes;
         ausentesEl.textContent = ausentes;
 
-        // Aquí iría la llamada AJAX al backend para guardar
+        // Guardar en el backend
+        try {
+            const response = await fetch('/api/entrada-club/registrar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    codigo: codigoSocio,
+                    entrada_club: isPresent
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al guardar');
+            }
+
+            console.log('[Entrada Club] Asistencia guardada correctamente');
+        } catch (error) {
+            console.error('[Entrada Club] Error guardando asistencia:', error);
+            // Revertir el cambio en caso de error
+            checkbox.checked = !isPresent;
+            if (isPresent) {
+                presentes--;
+                ausentes++;
+            } else {
+                presentes++;
+                ausentes--;
+            }
+            presentesEl.textContent = presentes;
+            ausentesEl.textContent = ausentes;
+
+            alert('Error al guardar la asistencia. Por favor, intente nuevamente.');
+        }
     }
 
     function exportarPDFClub() {
         console.log('[Entrada Club] Exportando PDF...');
-
-        // Aquí iría la lógica para generar el PDF
         alert('Exportando lista de asistencia a PDF...');
-
-        // Ejemplo de llamada al backend:
-        // window.location.href = '/api/entrada/club/export-pdf';
+        // window.location.href = '/api/entrada-club/export-pdf';
     }
+
+    // Agregar listeners para búsqueda en tiempo real
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cargar eventos en filtro
+        cargarEventosEnFiltro();
+
+        // Cargar todas las entradas al inicio
+        cargarTodasLasEntradas();
+
+        // Búsqueda en tiempo real
+        let searchTimeout;
+        document.getElementById('club_search_codigo').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(buscarEntradaClub, 500);
+        });
+
+        document.getElementById('club_search_nombre').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(buscarEntradaClub, 500);
+        });
+
+        document.getElementById('club_filter_area').addEventListener('change', buscarEntradaClub);
+    });
 </script>

@@ -41,6 +41,7 @@
                 <div class="form-group">
                     <label for="tipo">Tipo <span class="required">*</span></label>
                     <select id="tipo" name="tipo" required>
+                        <option value="">Seleccione tipo</option>
                         <option value="socio">Socio</option>
                         <option value="invitado">Invitado</option>
                     </select>
@@ -48,7 +49,27 @@
 
                 <div class="form-group">
                     <label for="codigo_socio">Código de Socio <span class="required">*</span></label>
-                    <input type="text" id="codigo_socio" name="codigo_socio" placeholder="S001" required>
+                    <div class="codigo-input-wrapper">
+                        <input type="text" id="codigo_socio" name="codigo_socio" placeholder="S001" required>
+                        <button type="button" id="btn_buscar_socio" class="btn-buscar-socio" style="display: none;" title="Buscar socio y familiares">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.35-4.35"/>
+                            </svg>
+                        </button>
+                        <div class="spinner-busqueda" id="spinner_codigo" style="display: none;"></div>
+                    </div>
+                    <div id="invitado_mensaje" class="invitado-info-message">
+                        Invitado de: <strong id="invitado_de_nombre"></strong>
+                    </div>
+                    <div id="error_codigo" class="error-message-codigo" style="display: none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <span id="error_codigo_texto"></span>
+                    </div>
                 </div>
 
                 <div class="form-row">
@@ -77,33 +98,40 @@
                     <label for="evento">Evento <span class="required">*</span></label>
                     <select id="evento" name="evento" required>
                         <option value="">Seleccione un evento</option>
-                        <option value="cena-anual-2025">Cena Anual 2025</option>
-                        <option value="torneo-tenis">Torneo de Tenis</option>
                     </select>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label for="mesa">Mesa</label>
-                        <select id="mesa" name="mesa">
+                        <select id="mesa" name="mesa" onchange="cargarSillasDisponibles()">
                             <option value="">Seleccione mesa</option>
-                            <option value="1">Mesa 1</option>
-                            <option value="2">Mesa 2</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="n_silla">N° de Silla</label>
-                        <input type="number" id="n_silla" name="n_silla" placeholder="1">
+                        <select id="n_silla" name="n_silla">
+                            <option value="">Primero seleccione mesa</option>
+                        </select>
                     </div>
                 </div>
 
-                <button type="submit" class="btn-submit">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Registrar Participante
-                </button>
+                <div class="form-actions">
+                    <button type="button" class="btn-clear" onclick="limpiarFormularioRegistro()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
+                        Limpiar
+                    </button>
+                    <button type="submit" class="btn-submit">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Registrar Participante
+                    </button>
+                </div>
             </form>
         </div>
 
@@ -113,27 +141,8 @@
             <div class="capacity-section">
                 <h3>Capacidad de Eventos</h3>
                 <p class="section-subtitle">Estado de ocupación de espacios por evento</p>
-
-                <div class="event-card">
-                    <div class="event-info">
-                        <h4>Cena Anual 2025</h4>
-                        <span class="event-date">2025-12-15</span>
-                    </div>
-                    <div class="capacity-badge">
-                        <span class="capacity-fill">Libres: 13</span>
-                        <span class="capacity-total">Ocupados: 3/16</span>
-                    </div>
-                </div>
-
-                <div class="event-card">
-                    <div class="event-info">
-                        <h4>Torneo de Tenis</h4>
-                        <span class="event-date">2025-11-30</span>
-                    </div>
-                    <div class="capacity-badge">
-                        <span class="capacity-fill">Libres: 0</span>
-                        <span class="capacity-total">Ocupados: 0/0</span>
-                    </div>
+                <div class="capacity-scroll-wrapper">
+                    <!-- Contenido cargado dinámicamente por JavaScript -->
                 </div>
             </div>
 
@@ -141,61 +150,8 @@
             <div class="mesas-section">
                 <h3>Gestión de Mesas</h3>
                 <p class="section-subtitle">Administre las mesas y su capacidad</p>
-
-                <div class="mesa-card">
-                    <div class="mesa-header">
-                        <span class="mesa-number">Mesa 1</span>
-                        <span class="mesa-event">Cena Anual 2025</span>
-                        <div class="mesa-actions">
-                            <button class="btn-icon-action edit" title="Editar">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                </svg>
-                            </button>
-                            <button class="btn-icon-action delete" title="Eliminar">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="3 6 5 6 21 6"/>
-                                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="mesa-details">
-                        <span class="mesa-date">2025-12-15</span>
-                        <div class="capacity-indicator">
-                            <span class="capacity-fill">Libres: 5</span>
-                            <span class="capacity-total">Ocupados: 3/8</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mesa-card">
-                    <div class="mesa-header">
-                        <span class="mesa-number">Mesa 2</span>
-                        <span class="mesa-event">Cena Anual 2025</span>
-                        <div class="mesa-actions">
-                            <button class="btn-icon-action edit" title="Editar">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                </svg>
-                            </button>
-                            <button class="btn-icon-action delete" title="Eliminar">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="3 6 5 6 21 6"/>
-                                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="mesa-details">
-                        <span class="mesa-date">2025-12-15</span>
-                        <div class="capacity-indicator">
-                            <span class="capacity-fill">Libres: 8</span>
-                            <span class="capacity-total">Ocupados: 0/8</span>
-                        </div>
-                    </div>
+                <div class="mesas-scroll-wrapper">
+                    <!-- Contenido cargado dinámicamente por JavaScript -->
                 </div>
             </div>
 
@@ -204,7 +160,7 @@
                 <h3>Disposición de Mesas</h3>
                 <p class="section-subtitle">Visualice la distribución de participantes por mesa</p>
 
-                <div class="disposition-table-wrapper">
+                <div class="disposition-table-wrapper disposition-scroll-wrapper">
                     <table class="disposition-table">
                         <thead>
                             <tr>
@@ -216,48 +172,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>S001</td>
-                                <td>Juan Pérez García</td>
-                                <td><span class="badge-type socio">socio</span></td>
-                                <td>Mesa 1 - Silla 1</td>
-                                <td>
-                                    <button class="btn-remove">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="3 6 5 6 21 6"/>
-                                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                                        </svg>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>S001-INV1</td>
-                                <td>María López Martínez</td>
-                                <td><span class="badge-type invitado">invitado</span></td>
-                                <td>Mesa 1 - Silla 2</td>
-                                <td>
-                                    <button class="btn-remove">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="3 6 5 6 21 6"/>
-                                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                                        </svg>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>S002</td>
-                                <td>Carlos Rodríguez Silva</td>
-                                <td><span class="badge-type socio">socio</span></td>
-                                <td>Mesa 1 - Silla 3</td>
-                                <td>
-                                    <button class="btn-remove">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="3 6 5 6 21 6"/>
-                                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                                        </svg>
-                                    </button>
-                                </td>
-                            </tr>
+                            <!-- Contenido cargado dinámicamente por JavaScript -->
                         </tbody>
                     </table>
                 </div>
@@ -314,16 +229,14 @@
             <p class="modal-subtitle">Complete los datos de la nueva mesa</p>
             <form id="formNuevaMesa">
                 <div class="form-group">
-                    <label for="numero_mesa">Número de Mesa <span class="required">*</span></label>
-                    <input type="text" id="numero_mesa" placeholder="Ej: 1" required>
+                    <label for="evento_mesa">Evento <span class="required">*</span></label>
+                    <select id="evento_mesa" onchange="asignarNumeroMesaAutomatico()" required>
+                        <option value="">Seleccione un evento</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label for="evento_mesa">Evento <span class="required">*</span></label>
-                    <select id="evento_mesa" required>
-                        <option value="">Seleccione un evento</option>
-                        <option value="cena-anual-2025">Cena Anual 2025</option>
-                        <option value="torneo-tenis">Torneo de Tenis</option>
-                    </select>
+                    <label for="numero_mesa">Número de Mesa <span class="required">*</span></label>
+                    <input type="number" id="numero_mesa" placeholder="Se asigna automáticamente" readonly required>
                 </div>
                 <div class="form-group">
                     <label for="capacidad_mesa">Capacidad <span class="required">*</span></label>
@@ -340,6 +253,154 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Mesa -->
+<div id="modalEditarMesa" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Editar Mesa</h2>
+            <button class="modal-close" onclick="closeEditMesaModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-subtitle">Modifique los datos de la mesa</p>
+            <form id="formEditarMesa">
+                <div class="form-group">
+                    <label for="edit_numero_mesa">Número de Mesa <span class="required">*</span></label>
+                    <input type="text" id="edit_numero_mesa" placeholder="Ej: 1" required readonly>
+                </div>
+                <div class="form-group">
+                    <label for="edit_evento_mesa">Evento <span class="required">*</span></label>
+                    <select id="edit_evento_mesa" required disabled>
+                        <option value="">Seleccione un evento</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit_capacidad_mesa">Capacidad <span class="required">*</span></label>
+                    <input type="number" id="edit_capacidad_mesa" placeholder="8" min="1" required>
+                </div>
+                <div class="info-message">
+                    <p class="capacity-info">
+                        <strong>Mínimo:</strong> <span id="edit_min_capacity">3</span> (sillas ocupadas actualmente)
+                    </p>
+                    <p class="occupied-info">
+                        Sillas ocupadas: <span id="edit_occupied_seats">3/8</span>
+                    </p>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeEditMesaModal()">Cancelar</button>
+                    <button type="submit" class="btn-save">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Selección de Socio/Familiar -->
+<div id="modalSeleccionSocio" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Seleccionar Persona</h2>
+            <button class="modal-close" onclick="closeSeleccionSocioModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-subtitle">Seleccione al socio principal o uno de sus familiares</p>
+            <div class="selector-personas-container">
+                <!-- Contenido cargado dinámicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Evento -->
+<div id="modalEditarEvento" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Editar Evento</h2>
+            <button class="modal-close" onclick="closeEditEventoModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-subtitle">Modifique los datos del evento</p>
+            <form id="formEditarEvento">
+                <input type="hidden" id="edit_evento_id">
+                <div class="form-group">
+                    <label for="edit_nombre_evento">Nombre del Evento <span class="required">*</span></label>
+                    <input type="text" id="edit_nombre_evento" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_fecha_evento">Fecha <span class="required">*</span></label>
+                    <input type="date" id="edit_fecha_evento" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeEditEventoModal()">Cancelar</button>
+                    <button type="submit" class="btn-save">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminación de Evento -->
+<div id="modalEliminarEvento" class="modal">
+    <div class="modal-content modal-confirm-delete">
+        <div class="modal-header">
+            <h2>Confirmar Eliminación</h2>
+            <button class="modal-close" onclick="closeEliminarEventoModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="warning-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </div>
+            <h3 id="delete_evento_nombre" style="margin: 1rem 0; color: #2c3e50;"></h3>
+            <p class="modal-subtitle">Esta acción eliminará permanentemente:</p>
+            <div class="delete-info-list">
+                <div class="delete-info-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#78B548" stroke-width="2">
+                        <rect x="3" y="10" width="18" height="2"/>
+                    </svg>
+                    <span><strong id="delete_mesas_count">0</strong> mesas</span>
+                </div>
+                <div class="delete-info-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#78B548" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 010 7.75"/>
+                    </svg>
+                    <span><strong id="delete_participantes_count">0</strong> participantes registrados</span>
+                </div>
+            </div>
+            <p style="color: #e74c3c; margin-top: 1.5rem; font-weight: 500;">⚠️ Esta acción no se puede deshacer</p>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeEliminarEventoModal()">Cancelar</button>
+                <button type="button" class="btn-delete-confirm" onclick="confirmarEliminarEvento()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                    </svg>
+                    Eliminar Evento
+                </button>
+            </div>
         </div>
     </div>
 </div>

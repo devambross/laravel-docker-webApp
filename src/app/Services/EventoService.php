@@ -2,37 +2,23 @@
 
 namespace App\Services;
 
+use App\Models\Evento;
+
 class EventoService
 {
     public function getEventos()
     {
-        // Simulación de datos de eventos
-        return [
-            [
-                'id' => 1,
-                'nombre' => 'Evento 1',
-                'fecha' => '2025-11-15',
-                'descripcion' => 'Descripción del evento 1'
-            ],
-            [
-                'id' => 2,
-                'nombre' => 'Evento 2',
-                'fecha' => '2025-11-20',
-                'descripcion' => 'Descripción del evento 2'
-            ],
-            [
-                'id' => 3,
-                'nombre' => 'Evento 3',
-                'fecha' => '2025-11-25',
-                'descripcion' => 'Descripción del evento 3'
-            ],
-            [
-                'id' => 4,
-                'nombre' => 'Evento 4',
-                'fecha' => '2025-12-01',
-                'descripcion' => 'Descripción del evento 4'
-            ],
-        ];
+        // Consultar eventos reales de la base de datos
+        $eventos = Evento::orderBy('fecha', 'desc')->get();
+
+        return $eventos->map(function($evento) {
+            return [
+                'id' => $evento->id,
+                'nombre' => $evento->nombre,
+                'fecha' => $evento->fecha->format('Y-m-d'),
+                'descripcion' => $evento->area ?? ''
+            ];
+        })->toArray();
     }
 
     /**

@@ -9,13 +9,43 @@ class Evento extends Model
     protected $fillable = [
         'nombre',
         'fecha',
-        'descripcion',
-        'estado'
+        'area',
+        'capacidad_total'
     ];
 
+    protected $casts = [
+        'fecha' => 'date'
+    ];
+
+    /**
+     * Relación con mesas
+     */
+    public function mesas()
+    {
+        return $this->hasMany(Mesa::class);
+    }
+
+    /**
+     * Relación con participantes
+     */
     public function participantes()
     {
-        return $this->belongsToMany(User::class, 'evento_user')
-            ->withPivot(['mesa', 'asiento', 'asistencia_1', 'asistencia_2']);
+        return $this->hasMany(ParticipanteEvento::class);
+    }
+
+    /**
+     * Obtener el total de asientos ocupados
+     */
+    public function getAsientosOcupadosAttribute()
+    {
+        return $this->participantes()->count();
+    }
+
+    /**
+     * Obtener el total de asientos disponibles
+     */
+    public function getAsientosDisponiblesAttribute()
+    {
+        return $this->capacidad_total - $this->asientos_ocupados;
     }
 }
