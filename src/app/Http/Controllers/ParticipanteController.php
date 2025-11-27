@@ -10,6 +10,7 @@ use App\Services\SocioAPIService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ParticipanteController extends Controller
 {
@@ -25,18 +26,37 @@ class ParticipanteController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'evento_id' => 'required|exists:eventos,id',
-            'mesa_id' => 'nullable|exists:mesas,id',
-            'numero_silla' => 'nullable|integer|min:1',
-            'tipo' => 'required|in:socio,invitado',
-            'codigo_socio' => 'required|string|max:50',
-            'codigo_participante' => 'required|string|max:50',
-            'dni' => 'required|string|max:20',
-            'nombre' => 'required|string|max:255',
-            'n_recibo' => 'nullable|string|max:100',
-            'n_boleta' => 'nullable|string|max:100'
+        Log::info('[ParticipanteController] store() iniciado', [
+            'request_data' => $request->all(),
+            'method' => $request->method(),
+            'url' => $request->fullUrl()
         ]);
+
+        try {
+            $validated = $request->validate([
+                'evento_id' => 'required|exists:eventos,id',
+                'mesa_id' => 'nullable|exists:mesas,id',
+                'numero_silla' => 'nullable|integer|min:1',
+                'tipo' => 'required|in:socio,invitado',
+                'codigo_socio' => 'required|string|max:50',
+                'codigo_participante' => 'required|string|max:50',
+                'dni' => 'required|string|max:20',
+                'nombre' => 'required|string|max:255',
+                'n_recibo' => 'nullable|string|max:100',
+                'n_boleta' => 'nullable|string|max:100'
+            ]);
+
+            Log::info('[ParticipanteController] Validación exitosa', $validated);
+
+        } catch (ValidationException $e) {
+            Log::error('[ParticipanteController] Error de validación', [
+                'errors' => $e->errors()
+            ]);
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors()
+            ], 422);
+        }
 
         try {
             DB::beginTransaction();
@@ -97,10 +117,15 @@ class ParticipanteController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error al registrar participante: " . $e->getMessage());
+            Log::error('[ParticipanteController] EXCEPTION al registrar', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Error al registrar el participante'
+                'message' => 'Error al registrar el participante: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -261,7 +286,7 @@ class ParticipanteController extends Controller
     public function participantesEvento($eventoId)
     {
         $participantes = ParticipanteEvento::where('evento_id', $eventoId)
-                                          ->with(['mesa', 'entradaEvento'])
+                                          ->with(['mesa', 'entradaEvento', 'evento'])
                                           ->orderBy('mesa_id')
                                           ->orderBy('numero_silla')
                                           ->get();
@@ -271,10 +296,14 @@ class ParticipanteController extends Controller
             'data' => $participantes->map(function($p) {
                 return [
                     'id' => $p->id,
+                    'evento_id' => $p->evento_id,
+                    'evento_nombre' => $p->evento->nombre ?? 'N/A',
                     'codigo_participante' => $p->codigo_participante,
                     'tipo' => $p->tipo,
                     'nombre' => $p->nombre,
                     'dni' => $p->dni,
+                    'mesa_id' => $p->mesa_id,
+                    'numero_silla' => $p->numero_silla,
                     'mesa_silla' => $p->mesa_silla,
                     'entrada_club' => $p->entradaEvento->entrada_club ?? false,
                     'entrada_evento' => $p->entradaEvento->entrada_evento ?? false

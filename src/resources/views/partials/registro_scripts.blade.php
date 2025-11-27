@@ -1,4 +1,66 @@
 <script>
+    // Sistema de notificaciones
+    function mostrarNotificacion(mensaje, tipo = 'success', titulo = null) {
+        const container = document.getElementById('notificationContainer');
+        const notification = document.createElement('div');
+        notification.className = `notification ${tipo}`;
+
+        // Títulos por defecto según el tipo
+        const titulos = {
+            'success': titulo || '✓ Éxito',
+            'error': titulo || '✗ Error',
+            'warning': titulo || '⚠ Advertencia',
+            'info': titulo || 'ℹ Información'
+        };
+
+        // Iconos SVG según tipo
+        const iconos = {
+            'success': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>',
+            'error': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+            'warning': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+            'info': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+        };
+
+        notification.innerHTML = `
+            <div class="notification-icon">
+                ${iconos[tipo]}
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">${titulos[tipo]}</div>
+                <div class="notification-message">${mensaje}</div>
+            </div>
+            <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+        `;
+
+        container.appendChild(notification);
+
+        // Auto-eliminar después de 3 segundos
+        setTimeout(() => {
+            notification.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    // Funciones para manejar estado de carga en botones
+    function setButtonLoading(button, isLoading) {
+        if (!button) return;
+
+        if (isLoading) {
+            button.disabled = true;
+            button.dataset.originalContent = button.innerHTML;
+            button.innerHTML = `
+                <div class="spinner-busqueda" style="display:inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></div>
+                <span>Procesando...</span>
+            `;
+        } else {
+            button.disabled = false;
+            if (button.dataset.originalContent) {
+                button.innerHTML = button.dataset.originalContent;
+                delete button.dataset.originalContent;
+            }
+        }
+    }
+
     // Manejo de pestañas
     document.addEventListener('DOMContentLoaded', function() {
         const tabBtns = document.querySelectorAll('.tab-btn');
@@ -18,11 +80,19 @@
             });
         });
 
+        // Mostrar spinners iniciales
+        const capacityWrapper = document.querySelector('.capacity-scroll-wrapper');
+        const mesasWrapper = document.querySelector('.mesas-scroll-wrapper');
+
+        capacityWrapper.innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner-busqueda" style="display:inline-block;"></div><p style="color:#999; margin-top:0.5rem;">Cargando eventos...</p></div>';
+        mesasWrapper.innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner-busqueda" style="display:inline-block;"></div><p style="color:#999; margin-top:0.5rem;">Cargando mesas...</p></div>';
+
         // Cargar datos iniciales
         cargarEventosEnSelectores();
         cargarCapacidadEventos();
         cargarMesas();
         cargarDisposicionMesas();
+        cargarFiltroEventos();
 
         // Agregar listeners para autocompletado de socio
         configurarAutocompletadoSocio();
@@ -43,14 +113,26 @@
             selectMesa.innerHTML = '<option value="">Seleccione un evento</option>';
 
             eventos.forEach(evento => {
+                // Formatear fecha(s)
+                let fechaDisplay;
+                if (evento.fecha && evento.fecha_fin) {
+                    if (evento.fecha === evento.fecha_fin) {
+                        fechaDisplay = evento.fecha;
+                    } else {
+                        fechaDisplay = `${evento.fecha} - ${evento.fecha_fin}`;
+                    }
+                } else {
+                    fechaDisplay = evento.fecha || 'Sin fecha';
+                }
+
                 const option1 = document.createElement('option');
                 option1.value = evento.id;
-                option1.textContent = `${evento.nombre} - ${evento.fecha}`;
+                option1.textContent = `${evento.nombre} - ${fechaDisplay}`;
                 selectRegistro.appendChild(option1);
 
                 const option2 = document.createElement('option');
                 option2.value = evento.id;
-                option2.textContent = `${evento.nombre} - ${evento.fecha}`;
+                option2.textContent = `${evento.nombre} - ${fechaDisplay}`;
                 selectMesa.appendChild(option2);
             });
         } catch (error) {
@@ -58,12 +140,17 @@
         }
     }
 
-    async function cargarCapacidadEventos() {
+    async function cargarCapacidadEventos(mostrarSpinner = false) {
         try {
+            const wrapper = document.querySelector('.capacity-scroll-wrapper');
+
+            if (mostrarSpinner) {
+                wrapper.innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner-busqueda" style="display:inline-block;"></div><p style="color:#999; margin-top:0.5rem;">Cargando eventos...</p></div>';
+            }
+
             const response = await fetch('/api/eventos');
             const eventos = await response.json();
 
-            const wrapper = document.querySelector('.capacity-scroll-wrapper');
             let html = '';
 
             if (eventos.length === 0) {
@@ -98,22 +185,61 @@
                         mesasInfo = `<span class="capacity-fill" style="color: #999;">Sin mesas asignadas</span>`;
                     }
 
+                    // Formatear fecha(s) para mostrar
+                    let fechaDisplay;
+                    if (evento.fecha && evento.fecha_fin) {
+                        if (evento.fecha === evento.fecha_fin) {
+                            fechaDisplay = evento.fecha;
+                        } else {
+                            fechaDisplay = `${evento.fecha} - ${evento.fecha_fin}`;
+                        }
+                    } else {
+                        fechaDisplay = evento.fecha || 'Sin fecha';
+                    }
+
                     html += `
                         <div class="event-card">
                             <div class="event-header">
                                 <div class="event-info">
                                     <h4>${evento.nombre}</h4>
-                                    <span class="event-date">${evento.fecha}</span>
+                                    <span class="event-date">${fechaDisplay}</span>
                                 </div>
                                 <div class="event-actions">
-                                    <button class="btn-icon-action export" title="Exportar a PDF" onclick="exportarEvento(${evento.id}, '${evento.nombre}')">
+                                    <button class="btn-icon-action view" title="Ver Disposición" onclick="abrirDisposicionEvento(${evento.id}, '${evento.nombre}')">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                                            <polyline points="7 10 12 15 17 10"/>
-                                            <line x1="12" y1="15" x2="12" y2="3"/>
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                            <circle cx="12" cy="12" r="3"/>
                                         </svg>
                                     </button>
-                                    <button class="btn-icon-action edit" title="Editar" onclick="abrirEditarEvento(${evento.id}, '${evento.nombre}', '${evento.fecha}')">
+                                    <div class="export-dropdown">
+                                        <button class="btn-icon-action export" title="Exportar" onclick="toggleExportMenu(event, ${evento.id}, '${evento.nombre}')">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                                                <polyline points="7 10 12 15 17 10"/>
+                                                <line x1="12" y1="15" x2="12" y2="3"/>
+                                            </svg>
+                                        </button>
+                                        <div class="export-menu" id="export-menu-${evento.id}">
+                                            <button onclick="exportarEvento(${evento.id}, '${evento.nombre}', 'pdf')">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                                    <polyline points="14 2 14 8 20 8"/>
+                                                </svg>
+                                                PDF
+                                            </button>
+                                            <button onclick="exportarEvento(${evento.id}, '${evento.nombre}', 'excel')">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                                    <polyline points="14 2 14 8 20 8"/>
+                                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                                    <polyline points="10 9 9 9 8 9"/>
+                                                </svg>
+                                                Excel
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button class="btn-icon-action edit" title="Editar" onclick="abrirEditarEvento(${evento.id}, '${evento.nombre}', '${evento.fecha}', '${evento.fecha_fin || ''}')">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                                             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -141,12 +267,17 @@
         }
     }
 
-    async function cargarMesas() {
+    async function cargarMesas(mostrarSpinner = false) {
         try {
+            const wrapper = document.querySelector('.mesas-scroll-wrapper');
+
+            if (mostrarSpinner) {
+                wrapper.innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner-busqueda" style="display:inline-block;"></div><p style="color:#999; margin-top:0.5rem;">Cargando mesas...</p></div>';
+            }
+
             const response = await fetch('/api/eventos');
             const eventos = await response.json();
 
-            const wrapper = document.querySelector('.mesas-scroll-wrapper');
             let html = '';
 
             for (const evento of eventos) {
@@ -214,6 +345,19 @@
 
             if (html === '') {
                 html += '<p style="text-align:center; color:#999; padding:1rem;">No hay mesas registradas</p>';
+            } else {
+                // Añadir botón flotante para crear mesa individual
+                html += `
+                    <div style="position: sticky; bottom: 10px; text-align: center; margin-top: 1rem;">
+                        <button onclick="abrirMesaIndividualModal()" class="btn-create" style="width: auto; padding: 0.6rem 1.5rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            Agregar Mesa Individual
+                        </button>
+                    </div>
+                `;
             }
 
             wrapper.innerHTML = html;
@@ -223,64 +367,240 @@
     }
 
     async function cargarDisposicionMesas() {
+        // Esta función ahora se mantiene solo para compatibilidad
+        // La disposición se mostrará en el modal por evento
+    }
+
+    // Cargar eventos en el filtro de gestión de mesas
+    async function cargarFiltroEventos() {
         try {
             const response = await fetch('/api/eventos');
             const eventos = await response.json();
 
-            const tbody = document.querySelector('.disposition-table tbody');
-            tbody.innerHTML = '';
+            const select = document.getElementById('filtro_evento_mesas');
+            if (!select) return;
 
-            for (const evento of eventos) {
-                const participantesResp = await fetch(`/api/participantes/evento/${evento.id}`);
-                const result = await participantesResp.json();
+            // Mantener opción "Todos"
+            select.innerHTML = '<option value="">Todos los eventos</option>';
 
-                // El API puede devolver {success: true, data: [...]} o directamente [...]
-                const participantes = result.success ? result.data : (Array.isArray(result) ? result : []);
+            eventos.forEach(evento => {
+                // Formatear fecha(s)
+                let fechaDisplay;
+                if (evento.fecha && evento.fecha_fin) {
+                    if (evento.fecha === evento.fecha_fin) {
+                        fechaDisplay = evento.fecha;
+                    } else {
+                        fechaDisplay = `${evento.fecha} - ${evento.fecha_fin}`;
+                    }
+                } else {
+                    fechaDisplay = evento.fecha || 'Sin fecha';
+                }
 
-                participantes.forEach(p => {
-                    // Usar codigo_participante en lugar de codigo_socio
-                    const codigo = p.codigo_participante || p.codigo_socio || 'N/A';
-                    const tipo = codigo.includes('-INV') ? 'invitado' :
-                                 (codigo.includes('-') ? 'familiar' : 'socio');
+                const option = document.createElement('option');
+                option.value = evento.id;
+                option.textContent = `${evento.nombre} - ${fechaDisplay}`;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('[Registro] Error cargando filtro eventos:', error);
+        }
+    }
 
-                    // Usar mesa_silla directamente si existe, sino construirlo
-                    const mesaSilla = p.mesa_silla ||
-                                     (p.mesa_numero ? `Mesa ${p.mesa_numero} - Silla ${p.numero_silla || 'N/A'}` : 'No asignado');
+    // Filtrar mesas por evento seleccionado
+    async function filtrarMesasPorEvento() {
+        try {
+            const eventoId = document.getElementById('filtro_evento_mesas')?.value;
+            const wrapper = document.querySelector('.mesas-scroll-wrapper');
+            let html = '';
 
-                    const row = `
-                        <tr>
-                            <td>${codigo}</td>
-                            <td>${p.nombre}</td>
-                            <td><span class="badge-type ${tipo}">${tipo}</span></td>
-                            <td>${mesaSilla}</td>
-                            <td>
-                                <button class="btn-remove" onclick="eliminarParticipante(${p.id}, '${p.nombre}')">
+            if (!eventoId) {
+                // Si no hay filtro, mostrar todas las mesas con spinner
+                await cargarMesas(true);
+                return;
+            }
+
+            wrapper.innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner-busqueda" style="display:inline-block;"></div><p style="color:#999; margin-top:0.5rem;">Filtrando mesas...</p></div>';
+
+            // Obtener evento
+            const eventoResp = await fetch('/api/eventos');
+            const eventos = await eventoResp.json();
+            const evento = eventos.find(e => e.id == eventoId);
+
+            if (!evento) {
+                wrapper.innerHTML = '<p style="text-align:center; color:#999; padding:1rem;">Evento no encontrado</p>';
+                return;
+            }
+
+            // Obtener mesas del evento
+            const mesasResp = await fetch(`/api/mesas/evento/${eventoId}`);
+            const mesas = await mesasResp.json();
+            const mesasArray = Array.isArray(mesas) ? mesas : [];
+
+            if (mesasArray.length === 0) {
+                wrapper.innerHTML = '<p style="text-align:center; color:#999; padding:1rem;">No hay mesas para este evento</p>';
+                return;
+            }
+
+            // Obtener participantes del evento
+            const participantesResp = await fetch(`/api/participantes/evento/${eventoId}`);
+            const participantesData = await participantesResp.json();
+            const todosParticipantes = participantesData.success ? participantesData.data : (Array.isArray(participantesData) ? participantesData : []);
+
+            for (const mesa of mesasArray) {
+                const ocupados = todosParticipantes.filter(p => {
+                    if (p.mesa_silla) {
+                        const match = p.mesa_silla.match(/Mesa (\d+)/);
+                        if (match) {
+                            return match[1] === String(mesa.numero);
+                        }
+                    }
+                    return false;
+                }).length;
+
+                const libres = (parseInt(mesa.capacidad) || 0) - ocupados;
+
+                html += `
+                    <div class="mesa-card">
+                        <div class="mesa-header">
+                            <span class="mesa-number">Mesa ${mesa.numero}</span>
+                            <span class="mesa-event">${evento.nombre}</span>
+                            <div class="mesa-actions">
+                                <button class="btn-icon-action edit" title="Editar"
+                                        onclick="openEditMesaModal(${mesa.id}, ${mesa.numero}, '${evento.nombre}', ${evento.id}, ${mesa.capacidad}, ${ocupados})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                </button>
+                                <button class="btn-icon-action delete" title="Eliminar" onclick="eliminarMesa(${mesa.id}, '${evento.nombre}')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="3 6 5 6 21 6"/>
                                         <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                                     </svg>
                                 </button>
-                            </td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
+                            </div>
+                        </div>
+                        <div class="mesa-details">
+                            <span class="mesa-date">${evento.fecha}</span>
+                            <div class="capacity-indicator">
+                                <span class="capacity-fill">Libres: ${libres}</span>
+                                <span class="capacity-total">Ocupados: ${ocupados}/${mesa.capacidad}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
 
-            if (tbody.innerHTML === '') {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#999;">No hay participantes registrados</td></tr>';
+            // Añadir botón flotante para crear mesa individual
+            html += `
+                <div style="position: sticky; bottom: 10px; text-align: center; margin-top: 1rem;">
+                    <button onclick="abrirMesaIndividualModal()" class="btn-create" style="width: auto; padding: 0.6rem 1.5rem;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Agregar Mesa Individual
+                    </button>
+                </div>
+            `;
+
+            wrapper.innerHTML = html;
+        } catch (error) {
+            console.error('[Registro] Error filtrando mesas:', error);
+            const wrapper = document.querySelector('.mesas-scroll-wrapper');
+            wrapper.innerHTML = '<p style="text-align:center; color:#e74c3c; padding:1rem;">Error al filtrar mesas</p>';
+        }
+    }
+
+    // Función para abrir modal de disposición de un evento
+    async function abrirDisposicionEvento(eventoId, nombreEvento) {
+        try {
+            // Guardar referencia del evento actual para poder refrescar después de eliminar
+            window.currentDisposicionEvento = { id: eventoId, nombre: nombreEvento };
+
+            const modal = document.getElementById('modalDisposicionEvento');
+            document.getElementById('disposicion_evento_nombre').textContent = nombreEvento;
+
+            const tbody = document.querySelector('#modalDisposicionEvento .disposition-table tbody');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;"><div class="spinner-busqueda" style="display:inline-block;"></div> Cargando...</td></tr>';
+
+            modal.style.display = 'flex';
+
+            const participantesResp = await fetch(`/api/participantes/evento/${eventoId}`);
+            const result = await participantesResp.json();
+
+            // El API puede devolver {success: true, data: [...]} o directamente [...]
+            const participantes = result.success ? result.data : (Array.isArray(result) ? result : []);
+
+            tbody.innerHTML = '';
+
+            if (participantes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#999;">No hay participantes registrados en este evento</td></tr>';
+                return;
             }
+
+            participantes.forEach(p => {
+                // Usar codigo_participante en lugar de codigo_socio
+                const codigo = p.codigo_participante || p.codigo_socio || 'N/A';
+                const tipo = codigo.includes('-INV') ? 'invitado' :
+                             (codigo.includes('-') ? 'familiar' : 'socio');
+
+                // Usar mesa_silla directamente si existe, sino construirlo
+                const mesaSilla = p.mesa_silla ||
+                                 (p.mesa_numero ? `Mesa ${p.mesa_numero} - Silla ${p.numero_silla || 'N/A'}` : 'No asignado');
+
+                const row = `
+                    <tr>
+                        <td>${codigo}</td>
+                        <td>${p.nombre}</td>
+                        <td><span class="badge-type ${tipo}">${tipo}</span></td>
+                        <td>${mesaSilla}</td>
+                        <td>
+                            <button class="btn-remove" onclick="eliminarParticipante(${p.id}, '${p.nombre}')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
         } catch (error) {
             console.error('[Registro] Error cargando disposición:', error);
+            const tbody = document.querySelector('#modalDisposicionEvento .disposition-table tbody');
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#e74c3c;">Error al cargar participantes</td></tr>';
         }
     }
 
+    function closeDisposicionEventoModal() {
+        document.getElementById('modalDisposicionEvento').style.display = 'none';
+    }
+
     // Funciones para eliminar
     async function eliminarMesa(mesaId, eventoNombre) {
-        if (!confirm(`¿Está seguro de eliminar esta mesa del evento "${eventoNombre}"?`)) {
-            return;
-        }
+        // Mostrar modal de confirmación
+        const modal = document.getElementById('confirmDeleteMesaModal');
+        document.getElementById('confirmDeleteMesaText').textContent =
+            `¿Está seguro de eliminar esta mesa del evento "${eventoNombre}"?`;
+
+        // Guardar referencias para el botón confirmar
+        window.pendingDeleteMesa = { mesaId, eventoNombre };
+        modal.classList.add('show');
+    }
+
+    function closeConfirmDeleteMesaModal() {
+        const modal = document.getElementById('confirmDeleteMesaModal');
+        modal.classList.remove('show');
+        window.pendingDeleteMesa = null;
+    }
+
+    async function confirmarEliminarMesa() {
+        if (!window.pendingDeleteMesa) return;
+
+        const { mesaId, eventoNombre } = window.pendingDeleteMesa;
+        closeConfirmDeleteMesaModal();
 
         try {
             const response = await fetch(`/api/mesas/${mesaId}`, {
@@ -292,19 +612,37 @@
 
             if (!response.ok) throw new Error('Error al eliminar');
 
-            alert('Mesa eliminada exitosamente');
+            mostrarNotificacion('La mesa ha sido eliminada correctamente', 'success');
             cargarMesas();
             cargarCapacidadEventos();
         } catch (error) {
             console.error('[Registro] Error eliminando mesa:', error);
-            alert('Error al eliminar la mesa');
+            mostrarNotificacion('No se pudo eliminar la mesa', 'error');
         }
     }
 
     async function eliminarParticipante(participanteId, nombre) {
-        if (!confirm(`¿Está seguro de eliminar a "${nombre}"?`)) {
-            return;
-        }
+        // Mostrar modal de confirmación
+        const modal = document.getElementById('confirmDeleteParticipanteModal');
+        document.getElementById('confirmDeleteParticipanteText').textContent =
+            `¿Está seguro de eliminar al participante "${nombre}"?`;
+
+        // Guardar referencias para el botón confirmar
+        window.pendingDeleteParticipante = { participanteId, nombre };
+        modal.classList.add('show');
+    }
+
+    function closeConfirmDeleteParticipanteModal() {
+        const modal = document.getElementById('confirmDeleteParticipanteModal');
+        modal.classList.remove('show');
+        window.pendingDeleteParticipante = null;
+    }
+
+    async function confirmarEliminarParticipante() {
+        if (!window.pendingDeleteParticipante) return;
+
+        const { participanteId, nombre } = window.pendingDeleteParticipante;
+        closeConfirmDeleteParticipanteModal();
 
         try {
             const response = await fetch(`/api/participantes/${participanteId}`, {
@@ -316,13 +654,28 @@
 
             if (!response.ok) throw new Error('Error al eliminar');
 
-            alert('Participante eliminado exitosamente');
+            mostrarNotificacion('El participante ha sido eliminado correctamente', 'success');
             cargarDisposicionMesas();
             cargarCapacidadEventos();
-            cargarMesas();
+
+            // Verificar si hay filtro activo
+            const filtroActivo = document.getElementById('filtro_evento_mesas')?.value;
+            if (filtroActivo) {
+                await filtrarMesasPorEvento();
+            } else {
+                cargarMesas();
+            }
+
+            // Refrescar el modal de disposición si está abierto
+            if (window.currentDisposicionEvento) {
+                await abrirDisposicionEvento(
+                    window.currentDisposicionEvento.id,
+                    window.currentDisposicionEvento.nombre
+                );
+            }
         } catch (error) {
             console.error('[Registro] Error eliminando participante:', error);
-            alert('Error al eliminar el participante');
+            mostrarNotificacion('No se pudo eliminar el participante', 'error');
         }
     }
 
@@ -557,9 +910,23 @@
     document.getElementById('formRegistroParticipante')?.addEventListener('submit', async function(e) {
         e.preventDefault();
 
+        const submitBtn = this.querySelector('button[type="submit"]');
+        setButtonLoading(submitBtn, true);
+
+        const tipo = document.getElementById('tipo').value;
+        const codigoSocio = document.getElementById('codigo_socio').value;
+
+        // Para invitados, generar un código único con timestamp
+        let codigoParticipante = codigoSocio;
+        if (tipo === 'invitado') {
+            const timestamp = Date.now().toString().slice(-6); // Últimos 6 dígitos del timestamp
+            codigoParticipante = `${codigoSocio}-INV${timestamp}`;
+        }
+
         const formData = {
-            tipo: document.getElementById('tipo').value,
-            codigo_socio: document.getElementById('codigo_socio').value,
+            tipo: tipo,
+            codigo_socio: codigoSocio,
+            codigo_participante: codigoParticipante,
             dni: document.getElementById('dni').value,
             nombre: document.getElementById('nombre').value,
             n_recibo: document.getElementById('n_recibo').value,
@@ -586,7 +953,7 @@
                 throw new Error(error.message || 'Error al registrar');
             }
 
-            alert('Participante registrado exitosamente');
+            mostrarNotificacion('El participante ha sido registrado correctamente', 'success');
 
             // Limpiar formulario usando la función dedicada
             limpiarFormularioRegistro();
@@ -594,10 +961,19 @@
             // Recargar datos
             cargarDisposicionMesas();
             cargarCapacidadEventos();
-            cargarMesas();
+
+            // Verificar si hay filtro activo
+            const filtroActivo = document.getElementById('filtro_evento_mesas')?.value;
+            if (filtroActivo) {
+                await filtrarMesasPorEvento();
+            } else {
+                cargarMesas();
+            }
         } catch (error) {
             console.error('[Registro] Error:', error);
-            alert('Error al registrar participante: ' + error.message);
+            mostrarNotificacion('Error al registrar: ' + error.message, 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
         }
     });
 
@@ -605,9 +981,13 @@
     document.getElementById('formNuevoEvento')?.addEventListener('submit', async function(e) {
         e.preventDefault();
 
+        const submitBtn = this.querySelector('button[type="submit"]');
+        setButtonLoading(submitBtn, true);
+
         const formData = {
             nombre: document.getElementById('nombre_evento').value,
             fecha: document.getElementById('fecha_evento').value,
+            fecha_fin: document.getElementById('fecha_fin_evento').value || null,
             area: document.getElementById('area_evento').value
         };
 
@@ -628,67 +1008,139 @@
                 throw new Error(error.message || 'Error al crear');
             }
 
-            alert('Evento creado exitosamente');
+            mostrarNotificacion('El evento ha sido creado correctamente', 'success');
             closeEventModal();
             document.getElementById('formNuevoEvento').reset();
+
+            // Mostrar spinner y recargar
+            const capacityWrapper = document.querySelector('.capacity-scroll-wrapper');
+            capacityWrapper.innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner-busqueda" style="display:inline-block;"></div><p style="color:#999; margin-top:0.5rem;">Actualizando eventos...</p></div>';
 
             // Recargar todos los selectores y secciones
             await cargarEventosEnSelectores();
             await cargarCapacidadEventos();
             await cargarMesas();
+            await cargarFiltroEventos();
 
             // Actualizar selector de entrada evento
             await cargarEventosEnSelectorEntradaEvento();
         } catch (error) {
             console.error('[Nuevo Evento] Error:', error);
-            alert('Error al crear evento: ' + error.message);
+            mostrarNotificacion('Error al crear evento: ' + error.message, 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
         }
     });
 
-    // Manejar envío de formulario de nueva mesa
+    // Manejar envío de formulario de nueva mesa EN MASA
     document.getElementById('formNuevaMesa')?.addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        const formData = {
-            numero_mesa: document.getElementById('numero_mesa').value,
-            evento_id: document.getElementById('evento_mesa').value,
-            capacidad: document.getElementById('capacidad_mesa').value
-        };
+        const submitBtn = this.querySelector('button[type="submit"]');
+        setButtonLoading(submitBtn, true);
 
-        console.log('[Nueva Mesa] Formulario enviado:', formData);
+        const eventoId = document.getElementById('evento_mesa').value;
+        const numeroMesas = parseInt(document.getElementById('numero_mesas').value);
+        const totalPersonas = parseInt(document.getElementById('total_personas').value);
+
+        console.log('[Nueva Mesa Masa] Crear', numeroMesas, 'mesas para', totalPersonas, 'personas');
 
         try {
-            const response = await fetch('/api/mesas', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify(formData)
-            });
+            // Calcular distribución de sillas
+            const sillasPorMesa = Math.floor(totalPersonas / numeroMesas);
+            const sillasSobrantes = totalPersonas % numeroMesas;
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Error al crear');
+            // Obtener el último número de mesa del evento
+            const mesasResp = await fetch(`/api/mesas/evento/${eventoId}`);
+            const mesasExistentes = await mesasResp.json();
+            let numeroInicial = mesasExistentes.length > 0
+                ? Math.max(...mesasExistentes.map(m => m.numero)) + 1
+                : 1;
+
+            // Crear las mesas EN LOTES PARALELOS (más rápido)
+            let mesasCreadas = 0;
+            const LOTE_SIZE = 5; // Crear 5 mesas a la vez
+            console.log(`[Nueva Mesa Masa] Iniciando creación de ${numeroMesas} mesas en lotes de ${LOTE_SIZE}`);
+
+            for (let i = 0; i < numeroMesas; i += LOTE_SIZE) {
+                const loteActual = Math.min(LOTE_SIZE, numeroMesas - i);
+                const promesas = [];
+
+                console.log(`[Lote ${Math.floor(i/LOTE_SIZE) + 1}] Creando ${loteActual} mesas en paralelo...`);
+
+                for (let j = 0; j < loteActual; j++) {
+                    const indice = i + j;
+                    const capacidad = indice === numeroMesas - 1
+                        ? sillasPorMesa + sillasSobrantes
+                        : sillasPorMesa;
+
+                    const mesaData = {
+                        numero_mesa: String(numeroInicial + indice),
+                        evento_id: eventoId,
+                        capacidad: capacidad
+                    };
+
+                    promesas.push(
+                        fetch('/api/mesas', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify(mesaData)
+                        }).then(response => {
+                            if (!response.ok) {
+                                return response.text().then(text => {
+                                    throw new Error(`Mesa ${numeroInicial + indice}: ${text.substring(0, 100)}`);
+                                });
+                            }
+                            mesasCreadas++;
+                            return response.json();
+                        })
+                    );
+                }
+
+                try {
+                    await Promise.all(promesas);
+                    console.log(`[Lote ${Math.floor(i/LOTE_SIZE) + 1}] ✓ ${loteActual} mesas creadas exitosamente`);
+                } catch (error) {
+                    console.error(`[Lote ${Math.floor(i/LOTE_SIZE) + 1}] Error:`, error);
+                    throw error;
+                }
             }
 
-            alert('Mesa creada exitosamente');
+            console.log(`[Nueva Mesa Masa] Completado: ${mesasCreadas} mesas creadas`);
+            const filtroActual = document.getElementById('filtro_evento_mesas')?.value;            mostrarNotificacion(`Se crearon ${mesasCreadas} mesas correctamente`, 'success');
             closeMesaModal();
             document.getElementById('formNuevaMesa').reset();
 
-            // Recargar todos los selectores y secciones
-            await cargarMesas();
+            // Recargar datos
+            if (filtroActual) {
+                if (filtroActual == eventoId) {
+                    const wrapper = document.querySelector('.mesas-scroll-wrapper');
+                    wrapper.innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner-busqueda" style="display:inline-block;"></div><p style="color:#999; margin-top:0.5rem;">Cargando mesas...</p></div>';
+                }
+                await filtrarMesasPorEvento();
+            } else {
+                await cargarMesas(true);
+            }
+
             await cargarCapacidadEventos();
             await cargarMesasEnSelector();
         } catch (error) {
-            console.error('[Nueva Mesa] Error:', error);
-            alert('Error al crear mesa: ' + error.message);
+            console.error('[Nueva Mesa Masa] Error:', error);
+            mostrarNotificacion('Error al crear mesas: ' + error.message, 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
         }
     });
 
     // Manejar envío de formulario de editar mesa
     document.getElementById('formEditarMesa')?.addEventListener('submit', async function(e) {
         e.preventDefault();
+
+        const submitBtn = this.querySelector('button[type="submit"]');
 
         const modal = document.getElementById('modalEditarMesa');
         const mesaId = modal.dataset.mesaId;
@@ -697,9 +1149,11 @@
 
         // Validar capacidad mínima
         if (parseInt(capacidad) < minCapacity) {
-            alert(`La capacidad no puede ser menor a ${minCapacity} (sillas ocupadas actualmente)`);
+            mostrarNotificacion(`La capacidad no puede ser menor a ${minCapacity} (sillas ocupadas actualmente)`, 'warning');
             return;
         }
+
+        setButtonLoading(submitBtn, true);
 
         const formData = {
             capacidad: capacidad
@@ -722,7 +1176,7 @@
                 throw new Error(error.message || 'Error al actualizar');
             }
 
-            alert('Mesa actualizada exitosamente');
+            mostrarNotificacion('La mesa ha sido actualizada correctamente', 'success');
             closeEditMesaModal();
 
             // Recargar datos
@@ -730,7 +1184,9 @@
             cargarCapacidadEventos();
         } catch (error) {
             console.error('[Editar Mesa] Error:', error);
-            alert('Error al actualizar mesa: ' + error.message);
+            mostrarNotificacion('Error al actualizar mesa: ' + error.message, 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
         }
     });
 
@@ -954,7 +1410,7 @@
     // Función para limpiar formulario de registro
     function limpiarFormularioRegistro() {
         // Limpiar todos los campos del formulario
-        document.getElementById('tipo').value = 'socio';
+        document.getElementById('tipo').value = '';
         document.getElementById('codigo_socio').value = '';
         document.getElementById('dni').value = '';
         document.getElementById('nombre').value = '';
@@ -964,9 +1420,13 @@
         document.getElementById('mesa').value = '';
         document.getElementById('n_silla').value = '';
 
-        // Limpiar selectores de mesa y silla
-        document.getElementById('mesa').innerHTML = '<option value="">Seleccione mesa</option>';
-        document.getElementById('n_silla').innerHTML = '<option value="">Primero seleccione mesa</option>';
+        // Resetear el selector visual de mesa y silla
+        const selector = document.getElementById('mesa_silla_selector');
+        const placeholder = selector?.querySelector('.mesa-silla-placeholder');
+        if (placeholder) {
+            placeholder.textContent = 'Seleccione mesa y silla';
+            selector.classList.remove('selected');
+        }
 
         // Ocultar mensajes y errores
         document.getElementById('invitado_mensaje')?.classList.remove('show');
@@ -980,10 +1440,11 @@
     }
 
     // ===== FUNCIONES PARA EDITAR EVENTO =====
-    function abrirEditarEvento(eventoId, nombre, fecha) {
+    function abrirEditarEvento(eventoId, nombre, fecha, fechaFin) {
         document.getElementById('edit_evento_id').value = eventoId;
         document.getElementById('edit_nombre_evento').value = nombre;
         document.getElementById('edit_fecha_evento').value = fecha;
+        document.getElementById('edit_fecha_fin_evento').value = fechaFin || '';
         document.getElementById('modalEditarEvento').classList.add('show');
     }
 
@@ -994,10 +1455,14 @@
     document.getElementById('formEditarEvento')?.addEventListener('submit', async function(e) {
         e.preventDefault();
 
+        const submitBtn = this.querySelector('button[type="submit"]');
+        setButtonLoading(submitBtn, true);
+
         const eventoId = document.getElementById('edit_evento_id').value;
         const formData = {
             nombre: document.getElementById('edit_nombre_evento').value,
-            fecha: document.getElementById('edit_fecha_evento').value
+            fecha: document.getElementById('edit_fecha_evento').value,
+            fecha_fin: document.getElementById('edit_fecha_fin_evento').value || null
         };
 
         try {
@@ -1016,7 +1481,7 @@
                 throw new Error(result.message || 'Error al actualizar');
             }
 
-            alert('Evento actualizado exitosamente');
+            mostrarNotificacion('El evento ha sido actualizado correctamente', 'success');
             closeEditEventoModal();
 
             // Recargar datos
@@ -1025,7 +1490,9 @@
             await cargarMesas();
         } catch (error) {
             console.error('[Editar Evento] Error:', error);
-            alert('Error al actualizar evento: ' + error.message);
+            mostrarNotificacion('Error al actualizar evento: ' + error.message, 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
         }
     });
 
@@ -1054,7 +1521,7 @@
             document.getElementById('modalEliminarEvento').classList.add('show');
         } catch (error) {
             console.error('[Eliminar Evento] Error:', error);
-            alert('Error al obtener información del evento');
+            mostrarNotificacion('Error al obtener información del evento', 'error');
         }
     }
 
@@ -1080,7 +1547,7 @@
                 throw new Error(result.message || 'Error al eliminar');
             }
 
-            alert('Evento eliminado exitosamente');
+            mostrarNotificacion('El evento ha sido eliminado correctamente', 'success');
             closeEliminarEventoModal();
 
             // Recargar datos
@@ -1090,14 +1557,325 @@
             await cargarDisposicionMesas();
         } catch (error) {
             console.error('[Eliminar Evento] Error:', error);
-            alert('Error al eliminar evento: ' + error.message);
+            mostrarNotificacion('Error al eliminar evento: ' + error.message, 'error');
         }
     }
 
-    // ===== FUNCIÓN PARA EXPORTAR EVENTO A PDF =====
-    function exportarEvento(eventoId, nombreEvento) {
+    // ===== FUNCIÓN PARA EXPORTAR EVENTO =====
+    function exportarEvento(eventoId, nombreEvento, formato = 'pdf') {
+        // Cerrar el menú
+        const menu = document.getElementById(`export-menu-${eventoId}`);
+        if (menu) menu.classList.remove('show');
+
         // Abrir la URL de exportación en una nueva pestaña
-        window.open(`/api/eventos/${eventoId}/exportar`, '_blank');
+        const url = formato === 'excel'
+            ? `/api/eventos/${eventoId}/exportar-excel`
+            : `/api/eventos/${eventoId}/exportar`;
+
+        window.open(url, '_blank');
+        mostrarNotificacion(`Exportando evento a ${formato.toUpperCase()}...`, 'info');
+    }
+
+    function toggleExportMenu(event, eventoId, nombreEvento) {
+        event.stopPropagation();
+
+        // Cerrar otros menús abiertos
+        document.querySelectorAll('.export-menu.show').forEach(menu => {
+            if (menu.id !== `export-menu-${eventoId}`) {
+                menu.classList.remove('show');
+            }
+        });
+
+        // Toggle del menú actual
+        const menu = document.getElementById(`export-menu-${eventoId}`);
+        menu.classList.toggle('show');
+    }
+
+    // Cerrar menús al hacer click fuera
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.export-menu.show').forEach(menu => {
+            menu.classList.remove('show');
+        });
+    });
+
+    // ===== FUNCIONES PARA SELECTOR VISUAL DE MESA Y SILLA =====
+    let mesaSeleccionada = null;
+    let sillaSeleccionada = null;
+
+    async function abrirSelectorMesaSilla() {
+        const eventoId = document.getElementById('evento').value;
+
+        if (!eventoId) {
+            mostrarNotificacion('Primero debe seleccionar un evento', 'warning');
+            return;
+        }
+
+        const modal = document.getElementById('modalSelectorMesaSilla');
+        const container = document.getElementById('mesas_disponibles_container');
+
+        modal.style.display = 'flex';
+        container.innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner-busqueda" style="display:inline-block;"></div><p style="color:#999; margin-top:0.5rem;">Cargando mesas...</p></div>';
+
+        try {
+            // Obtener mesas del evento
+            const [mesasResp, participantesResp] = await Promise.all([
+                fetch(`/api/mesas/evento/${eventoId}`),
+                fetch(`/api/participantes/evento/${eventoId}`)
+            ]);
+
+            const mesas = await mesasResp.json();
+            const participantesData = await participantesResp.json();
+            const participantes = participantesData.success ? participantesData.data : (Array.isArray(participantesData) ? participantesData : []);
+
+            if (!Array.isArray(mesas) || mesas.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#999; padding:2rem;">No hay mesas disponibles para este evento</p>';
+                return;
+            }
+
+            let html = '';
+            mesas.forEach(mesa => {
+                // Filtrar participantes de esta mesa específica
+                const participantesMesa = participantes.filter(p => parseInt(p.mesa_id) === parseInt(mesa.id));
+
+                // Usar los datos que vienen del backend
+                const ocupados = mesa.ocupados || 0;
+                const disponibles = mesa.disponibles || (mesa.capacidad - ocupados);
+                const estaLlena = mesa.completa || disponibles === 0;
+
+                console.log(`[Selector] Mesa ${mesa.numero}: ocupados=${ocupados}, capacidad=${mesa.capacidad}, participantesMesa=`, participantesMesa);
+
+                html += `
+                    <div class="mesa-card ${estaLlena ? 'disabled' : ''}" onclick="${estaLlena ? '' : `seleccionarMesa(${mesa.id}, '${mesa.numero}', ${mesa.capacidad})`}">
+                        <div class="mesa-card-header">
+                            <span class="mesa-numero">Mesa ${mesa.numero}</span>
+                            <span class="mesa-capacidad ${estaLlena ? 'llena' : ''}">${ocupados}/${mesa.capacidad}</span>
+                        </div>
+                        <div class="sillas-grid">
+                `;
+
+                // Generar las sillas
+                for (let i = 1; i <= mesa.capacidad; i++) {
+                    const participanteEnSilla = participantesMesa.find(p => parseInt(p.numero_silla) === i);
+                    const ocupada = !!participanteEnSilla;
+
+                    html += `
+                        <div class="silla-item ${ocupada ? 'ocupada' : ''}"
+                             data-mesa-id="${mesa.id}"
+                             data-silla="${i}"
+                             onclick="event.stopPropagation(); ${ocupada ? '' : `seleccionarSilla(${mesa.id}, ${mesa.numero}, ${i})`}">
+                            <span class="silla-numero">${i}</span>
+                            <span class="silla-estado">${ocupada ? 'Ocupada' : 'Libre'}</span>
+                        </div>
+                    `;
+                }
+
+                html += '</div>';
+
+                // Mostrar participantes si los hay
+                if (participantesMesa.length > 0) {
+                    html += `
+                        <div class="participantes-preview">
+                            <h4>Participantes:</h4>
+                    `;
+                    participantesMesa.forEach(p => {
+                        html += `
+                            <div class="participante-item">
+                                <span class="participante-nombre">${p.nombre}</span>
+                                <span class="participante-silla">Silla ${p.numero_silla}</span>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+
+                html += '</div>';
+            });
+
+            container.innerHTML = html;
+
+        } catch (error) {
+            console.error('[Selector Mesa] Error:', error);
+            container.innerHTML = '<p style="text-align:center; color:#e74c3c; padding:2rem;">Error al cargar las mesas</p>';
+        }
+    }
+
+    function seleccionarMesa(mesaId, mesaNumero, capacidad) {
+        mesaSeleccionada = { id: mesaId, numero: mesaNumero };
+        // No cerrar el modal, permitir que seleccione silla
+    }
+
+    function seleccionarSilla(mesaId, mesaNumero, silla) {
+        // Actualizar los valores ocultos
+        document.getElementById('mesa').value = mesaId;
+        document.getElementById('n_silla').value = silla;
+
+        // Actualizar el texto del selector
+        const selector = document.getElementById('mesa_silla_selector');
+        const placeholder = selector.querySelector('.mesa-silla-placeholder');
+        placeholder.textContent = `Mesa ${mesaNumero} - Silla ${silla}`;
+        selector.classList.add('selected');
+
+        // Cerrar modal
+        closeSelectorMesaSilla();
+        mostrarNotificacion(`Seleccionado: Mesa ${mesaNumero}, Silla ${silla}`, 'info');
+    }
+
+    function closeSelectorMesaSilla() {
+        document.getElementById('modalSelectorMesaSilla').style.display = 'none';
+    }
+
+    // ===== FUNCIONES PARA MESA INDIVIDUAL =====
+    function abrirMesaIndividualModal() {
+        document.getElementById('modalNuevaMesaIndividual').style.display = 'flex';
+        cargarEventosEnSelector('evento_mesa_individual');
+    }
+
+    function closeMesaIndividualModal() {
+        document.getElementById('modalNuevaMesaIndividual').style.display = 'none';
+        document.getElementById('formNuevaMesaIndividual').reset();
+    }
+
+    // Manejar envío de formulario de nueva mesa individual
+    document.getElementById('formNuevaMesaIndividual')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        setButtonLoading(submitBtn, true);
+
+        const formData = {
+            numero_mesa: document.getElementById('numero_mesa_individual').value,
+            evento_id: document.getElementById('evento_mesa_individual').value,
+            capacidad: document.getElementById('capacidad_mesa_individual').value
+        };
+
+        console.log('[Nueva Mesa Individual] Formulario enviado:', formData);
+
+        try {
+            const response = await fetch('/api/mesas', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Error al crear');
+            }
+
+            const eventoIdCreado = formData.evento_id;
+            const filtroActual = document.getElementById('filtro_evento_mesas')?.value;
+
+            mostrarNotificacion('La mesa ha sido creada correctamente', 'success');
+            closeMesaIndividualModal();
+
+            // Recargar datos
+            if (filtroActual) {
+                if (filtroActual == eventoIdCreado) {
+                    const wrapper = document.querySelector('.mesas-scroll-wrapper');
+                    wrapper.innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner-busqueda" style="display:inline-block;"></div><p style="color:#999; margin-top:0.5rem;">Cargando mesas...</p></div>';
+                }
+                await filtrarMesasPorEvento();
+            } else {
+                await cargarMesas(true);
+            }
+
+            await cargarCapacidadEventos();
+        } catch (error) {
+            console.error('[Nueva Mesa Individual] Error:', error);
+            mostrarNotificacion('Error al crear mesa: ' + error.message, 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
+        }
+    });
+
+    // Función auxiliar para cargar eventos en cualquier selector
+    async function cargarEventosEnSelector(selectorId) {
+        try {
+            const response = await fetch('/api/eventos');
+            const eventos = await response.json();
+            const select = document.getElementById(selectorId);
+
+            if (!select) return;
+
+            select.innerHTML = '<option value="">Seleccione un evento</option>';
+            eventos.forEach(evento => {
+                // Formatear fecha(s)
+                let fechaDisplay;
+                if (evento.fecha && evento.fecha_fin) {
+                    if (evento.fecha === evento.fecha_fin) {
+                        fechaDisplay = evento.fecha;
+                    } else {
+                        fechaDisplay = `${evento.fecha} - ${evento.fecha_fin}`;
+                    }
+                } else {
+                    fechaDisplay = evento.fecha || 'Sin fecha';
+                }
+
+                const option = document.createElement('option');
+                option.value = evento.id;
+                option.textContent = `${evento.nombre} - ${fechaDisplay}`;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('[Cargar Eventos] Error:', error);
+        }
+    }
+
+    // Función para asignar número de mesa automático (individual)
+    async function asignarNumeroMesaAutomatico() {
+        const eventoId = document.getElementById('evento_mesa_individual')?.value;
+        const numeroInput = document.getElementById('numero_mesa_individual');
+
+        if (!eventoId || !numeroInput) return;
+
+        try {
+            const response = await fetch(`/api/mesas/evento/${eventoId}`);
+            const mesas = await response.json();
+            const ultimoNumero = mesas.length > 0 ? Math.max(...mesas.map(m => m.numero)) : 0;
+            numeroInput.value = ultimoNumero + 1;
+        } catch (error) {
+            console.error('[Asignar Número Mesa] Error:', error);
+            numeroInput.value = 1;
+        }
+    }
+
+    // Función para calcular y mostrar previsualización de distribución de mesas
+    function calcularDistribucionMesas() {
+        const numeroMesas = parseInt(document.getElementById('numero_mesas')?.value) || 0;
+        const totalPersonas = parseInt(document.getElementById('total_personas')?.value) || 0;
+        const previewDiv = document.getElementById('preview_distribucion');
+        const previewText = document.getElementById('preview_text');
+
+        if (numeroMesas <= 0 || totalPersonas <= 0) {
+            previewDiv.style.display = 'none';
+            return;
+        }
+
+        // Calcular distribución
+        const sillasPorMesa = Math.floor(totalPersonas / numeroMesas);
+        const sillasSobrantes = totalPersonas % numeroMesas;
+
+        let mensaje = '';
+
+        if (sillasSobrantes === 0) {
+            // Distribución perfecta
+            mensaje = `✓ <strong>${numeroMesas} mesas</strong> con <strong>${sillasPorMesa} sillas</strong> cada una.`;
+        } else {
+            // Distribución con ajuste
+            const mesasNormales = numeroMesas - 1;
+            const sillasUltimaMesa = sillasPorMesa + sillasSobrantes;
+
+            mensaje = `✓ <strong>${mesasNormales} mesas</strong> con <strong>${sillasPorMesa} sillas</strong> cada una.<br>`;
+            mensaje += `✓ <strong>1 mesa</strong> (la última) con <strong>${sillasUltimaMesa} sillas</strong>.`;
+        }
+
+        mensaje += `<br><br><strong>Total: ${totalPersonas} sillas</strong> distribuidas en <strong>${numeroMesas} mesas</strong>.`;
+
+        previewText.innerHTML = mensaje;
+        previewDiv.style.display = 'block';
     }
 </script>
 

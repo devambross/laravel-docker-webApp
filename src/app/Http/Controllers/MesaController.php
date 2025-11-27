@@ -14,30 +14,62 @@ class MesaController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'evento_id' => 'required|exists:eventos,id',
-            'numero_mesa' => 'required|string|max:50',
-            'capacidad' => 'required|integer|min:1|max:50'
+        // Log para debugging
+        Log::info('[MesaController] store() iniciado', [
+            'request_data' => $request->all(),
+            'has_session' => $request->session()->has('user'),
+            'method' => $request->method(),
+            'url' => $request->url()
         ]);
 
+        // Validar con try-catch para capturar errores
         try {
+            $validated = $request->validate([
+                'evento_id' => 'required|exists:eventos,id',
+                'numero_mesa' => 'required|string|max:50',
+                'capacidad' => 'required|integer|min:1|max:50'
+            ]);
+
+            Log::info('[MesaController] Validación exitosa');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('[MesaController] Error de validación', [
+                'errors' => $e->errors()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
+        }
+
+        try {
+            Log::info('[MesaController] Verificando duplicados...');
+
             // Verificar que no exista una mesa con el mismo número en este evento
             $existente = Mesa::where('evento_id', $validated['evento_id'])
                             ->where('numero_mesa', $validated['numero_mesa'])
                             ->first();
 
             if ($existente) {
+                Log::warning('[MesaController] Mesa duplicada detectada', [
+                    'numero_mesa' => $validated['numero_mesa'],
+                    'evento_id' => $validated['evento_id']
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Ya existe una mesa con este número en el evento'
                 ], 422);
             }
 
+            Log::info('[MesaController] Creando mesa en BD...', $validated);
             $mesa = Mesa::create($validated);
+            Log::info('[MesaController] Mesa creada con ID: ' . $mesa->id);
 
             // Actualizar capacidad total del evento
             $this->actualizarCapacidadEvento($validated['evento_id']);
 
+            Log::info('[MesaController] Retornando respuesta exitosa');
             return response()->json([
                 'success' => true,
                 'message' => 'Mesa creada exitosamente',
@@ -45,10 +77,12 @@ class MesaController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            Log::error("Error al crear mesa: " . $e->getMessage());
+            Log::error('[MesaController] EXCEPTION: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Error al crear la mesa'
+                'message' => 'Error al crear la mesa: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -183,7 +217,7 @@ class MesaController extends Controller
     {
         $mesas = Mesa::where('evento_id', $eventoId)
                     ->with('participantes')
-                    ->orderBy('numero_mesa')
+                    ->orderByRaw('CAST(numero_mesa AS INTEGER)')
                     ->get();
 
         return response()->json($mesas->map(function($mesa) {

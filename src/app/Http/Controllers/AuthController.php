@@ -32,8 +32,15 @@ class AuthController extends Controller
 
         // Comparar con datos de prueba
         if ($credentials['email'] === $user['email'] && $credentials['password'] === $user['password']) {
+            // Regenerar ID de sesión para seguridad
+            $request->session()->regenerate();
+
             // Guardar sesión
             $request->session()->put('user', $user);
+
+            // Forzar que se guarde la sesión inmediatamente
+            $request->session()->save();
+
             return redirect()->route('registro');
         }
 

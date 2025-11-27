@@ -4,6 +4,9 @@
 
 @section('content')
 
+<!-- Contenedor de notificaciones -->
+<div class="notification-container" id="notificationContainer"></div>
+
 <div class="registro-modern-container">
     <div class="content-wrapper">
         <!-- Panel izquierdo: Formulario de registro -->
@@ -101,18 +104,17 @@
                     </select>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="mesa">Mesa</label>
-                        <select id="mesa" name="mesa" onchange="cargarSillasDisponibles()">
-                            <option value="">Seleccione mesa</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="n_silla">N° de Silla</label>
-                        <select id="n_silla" name="n_silla">
-                            <option value="">Primero seleccione mesa</option>
-                        </select>
+                <div class="form-group">
+                    <label for="mesa_silla_selector">Mesa y Silla <span class="required">*</span></label>
+                    <div class="mesa-silla-selector" id="mesa_silla_selector" onclick="abrirSelectorMesaSilla()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" style="margin-right: 8px;">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="9" y1="21" x2="9" y2="9"/>
+                        </svg>
+                        <span class="mesa-silla-placeholder">Seleccione mesa y silla</span>
+                        <input type="hidden" id="mesa" name="mesa">
+                        <input type="hidden" id="n_silla" name="n_silla">
                     </div>
                 </div>
 
@@ -148,35 +150,24 @@
 
             <!-- Gestión de Mesas -->
             <div class="mesas-section">
-                <h3>Gestión de Mesas</h3>
-                <p class="section-subtitle">Administre las mesas y su capacidad</p>
+                <div class="section-header-with-filter">
+                    <div class="section-title-group">
+                        <h3>Gestión de Mesas</h3>
+                        <p class="section-subtitle">Administre las mesas y su capacidad</p>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filtro_evento_mesas" style="font-size: 0.85rem; color: #666; margin-right: 0.5rem;">Evento:</label>
+                        <select id="filtro_evento_mesas" onchange="filtrarMesasPorEvento()" style="padding: 0.4rem 0.8rem; border: 1px solid #ddd; border-radius: 5px; font-size: 0.85rem; color: #333; background: white;">
+                            <option value="">Todos los eventos</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="mesas-scroll-wrapper">
                     <!-- Contenido cargado dinámicamente por JavaScript -->
                 </div>
             </div>
 
-            <!-- Disposición de Mesas -->
-            <div class="disposition-section">
-                <h3>Disposición de Mesas</h3>
-                <p class="section-subtitle">Visualice la distribución de participantes por mesa</p>
-
-                <div class="disposition-table-wrapper disposition-scroll-wrapper">
-                    <table class="disposition-table">
-                        <thead>
-                            <tr>
-                                <th>Código</th>
-                                <th>Nombre</th>
-                                <th>Tipo</th>
-                                <th>Mesa</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Contenido cargado dinámicamente por JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <!-- Disposición de Mesas ahora se muestra en modal por evento -->
         </div>
     </div>
 </div>
@@ -195,9 +186,15 @@
                     <label for="nombre_evento">Nombre del Evento <span class="required">*</span></label>
                     <input type="text" id="nombre_evento" placeholder="Ej: Cena Anual 2025" required>
                 </div>
-                <div class="form-group">
-                    <label for="fecha_evento">Fecha <span class="required">*</span></label>
-                    <input type="date" id="fecha_evento" required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fecha_evento">Fecha de Inicio <span class="required">*</span></label>
+                        <input type="date" id="fecha_evento" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_fin_evento">Fecha de Fin</label>
+                        <input type="date" id="fecha_fin_evento">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="area_evento">Área <span class="required">*</span></label>
@@ -218,29 +215,42 @@
     </div>
 </div>
 
-<!-- Modal Nueva Mesa -->
+<!-- Modal Nueva Mesa en Masa -->
 <div id="modalNuevaMesa" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Crear Nueva Mesa</h2>
+            <h2>Crear Mesas en Masa</h2>
             <button class="modal-close" onclick="closeMesaModal()">&times;</button>
         </div>
         <div class="modal-body">
-            <p class="modal-subtitle">Complete los datos de la nueva mesa</p>
+            <p class="modal-subtitle">Distribuya automáticamente las mesas según la cantidad de personas</p>
             <form id="formNuevaMesa">
                 <div class="form-group">
                     <label for="evento_mesa">Evento <span class="required">*</span></label>
-                    <select id="evento_mesa" onchange="asignarNumeroMesaAutomatico()" required>
+                    <select id="evento_mesa" required>
                         <option value="">Seleccione un evento</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="numero_mesa">Número de Mesa <span class="required">*</span></label>
-                    <input type="number" id="numero_mesa" placeholder="Se asigna automáticamente" readonly required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="numero_mesas">Número de Mesas <span class="required">*</span></label>
+                        <input type="number" id="numero_mesas" placeholder="10" min="1" required oninput="calcularDistribucionMesas()">
+                    </div>
+                    <div class="form-group">
+                        <label for="total_personas">Total de Personas <span class="required">*</span></label>
+                        <input type="number" id="total_personas" placeholder="80" min="1" required oninput="calcularDistribucionMesas()">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="capacidad_mesa">Capacidad <span class="required">*</span></label>
-                    <input type="number" id="capacidad_mesa" placeholder="8" min="1" required>
+                <div id="preview_distribucion" class="info-message" style="background: #e3f2fd; border-left: 4px solid #2196F3; padding: 12px; border-radius: 4px; margin: 15px 0; display: none;">
+                    <p style="margin: 0; color: #555; font-size: 0.9rem;">
+                        <strong style="color: #2196F3;">📄 Previsualización:</strong><br>
+                        <span id="preview_text"></span>
+                    </p>
+                </div>
+                <div class="info-message" style="background: #e8f5e9; border-left: 4px solid #78B548; padding: 12px; border-radius: 4px; margin: 15px 0;">
+                    <p style="margin: 0; color: #555; font-size: 0.9rem;">
+                        <strong>Distribución automática:</strong> Las sillas se distribuirán equitativamente entre las mesas. Si la división no es exacta, la última mesa se ajustará automáticamente.
+                    </p>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel" onclick="closeMesaModal()">Cancelar</button>
@@ -249,7 +259,7 @@
                             <line x1="12" y1="5" x2="12" y2="19"/>
                             <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
-                        Crear Mesa
+                        Crear Mesas
                     </button>
                 </div>
             </form>
@@ -336,9 +346,15 @@
                     <label for="edit_nombre_evento">Nombre del Evento <span class="required">*</span></label>
                     <input type="text" id="edit_nombre_evento" required>
                 </div>
-                <div class="form-group">
-                    <label for="edit_fecha_evento">Fecha <span class="required">*</span></label>
-                    <input type="date" id="edit_fecha_evento" required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_fecha_evento">Fecha de Inicio <span class="required">*</span></label>
+                        <input type="date" id="edit_fecha_evento" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_fecha_fin_evento">Fecha de Fin</label>
+                        <input type="date" id="edit_fecha_fin_evento">
+                    </div>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel" onclick="closeEditEventoModal()">Cancelar</button>
@@ -401,6 +417,152 @@
                     Eliminar Evento
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Disposición de Mesas por Evento -->
+<div id="modalDisposicionEvento" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h2>Disposición de Mesas - <span id="disposicion_evento_nombre"></span></h2>
+            <button class="modal-close" onclick="closeDisposicionEventoModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-subtitle">Participantes registrados en este evento</p>
+            <div class="disposition-table-wrapper">
+                <table class="disposition-table">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Tipo</th>
+                            <th>Mesa</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Contenido cargado dinámicamente por JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Selector de Mesa y Silla -->
+<div id="modalSelectorMesaSilla" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h2>Seleccionar Mesa y Silla</h2>
+            <button class="modal-close" onclick="closeSelectorMesaSilla()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-subtitle">Seleccione una mesa con sillas disponibles</p>
+            <div id="mesas_disponibles_container" class="mesas-grid">
+                <!-- Contenido cargado dinámicamente por JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Mesa Individual -->
+<div id="modalNuevaMesaIndividual" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Crear Mesa Individual</h2>
+            <button class="modal-close" onclick="closeMesaIndividualModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-subtitle">Complete los datos de la nueva mesa</p>
+            <form id="formNuevaMesaIndividual">
+                <div class="form-group">
+                    <label for="evento_mesa_individual">Evento <span class="required">*</span></label>
+                    <select id="evento_mesa_individual" onchange="asignarNumeroMesaAutomatico()" required>
+                        <option value="">Seleccione un evento</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="numero_mesa_individual">Número de Mesa <span class="required">*</span></label>
+                    <input type="number" id="numero_mesa_individual" placeholder="Se asigna automáticamente" readonly required>
+                </div>
+                <div class="form-group">
+                    <label for="capacidad_mesa_individual">Capacidad <span class="required">*</span></label>
+                    <input type="number" id="capacidad_mesa_individual" placeholder="8" min="1" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeMesaIndividualModal()">Cancelar</button>
+                    <button type="submit" class="btn-create">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Crear Mesa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminar Mesa -->
+<div id="confirmDeleteMesaModal" class="modal">
+    <div class="modal-content modal-confirm">
+        <div class="modal-header modal-header-danger">
+            <h2>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                Confirmar Eliminación
+            </h2>
+            <button class="modal-close" onclick="closeConfirmDeleteMesaModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="confirmDeleteMesaText" class="modal-confirm-text"></p>
+            <p class="modal-warning">Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" onclick="closeConfirmDeleteMesaModal()">Cancelar</button>
+            <button type="button" class="btn-delete" onclick="confirmarEliminarMesa()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                Eliminar Mesa
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación para Eliminar Participante -->
+<div id="confirmDeleteParticipanteModal" class="modal">
+    <div class="modal-content modal-confirm">
+        <div class="modal-header modal-header-danger">
+            <h2>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                Confirmar Eliminación
+            </h2>
+            <button class="modal-close" onclick="closeConfirmDeleteParticipanteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="confirmDeleteParticipanteText" class="modal-confirm-text"></p>
+            <p class="modal-warning">Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" onclick="closeConfirmDeleteParticipanteModal()">Cancelar</button>
+            <button type="button" class="btn-delete" onclick="confirmarEliminarParticipante()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                Eliminar Participante
+            </button>
         </div>
     </div>
 </div>

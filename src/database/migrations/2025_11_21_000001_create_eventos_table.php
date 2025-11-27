@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('eventos', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->date('fecha');
+            $table->date('fecha'); // fecha de inicio
+            $table->date('fecha_fin')->nullable();
             $table->string('area', 100);
             $table->integer('capacidad_total')->default(0);
             $table->timestamps();

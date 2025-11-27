@@ -77,13 +77,12 @@ class EventoController extends Controller
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'fecha' => 'required|date',
+            'fecha_fin' => 'nullable|date|after_or_equal:fecha',
             'area' => 'required|string|max:100'
         ]);
 
         try {
-            $evento = Evento::create($validated);
-
-            return response()->json([
+            $evento = Evento::create($validated);            return response()->json([
                 'success' => true,
                 'message' => 'Evento creado exitosamente',
                 'data' => $evento
@@ -107,13 +106,12 @@ class EventoController extends Controller
 
         $validated = $request->validate([
             'nombre' => 'sometimes|string|max:255',
-            'fecha' => 'sometimes|date'
+            'fecha' => 'sometimes|date',
+            'fecha_fin' => 'nullable|date|after_or_equal:fecha'
         ]);
 
         try {
-            $evento->update($validated);
-
-            return response()->json([
+            $evento->update($validated);            return response()->json([
                 'success' => true,
                 'message' => 'Evento actualizado exitosamente',
                 'data' => $evento
@@ -193,7 +191,7 @@ class EventoController extends Controller
         try {
             $evento = Evento::with([
                 'mesas' => function($query) {
-                    $query->orderBy('numero_mesa');
+                    $query->orderByRaw('CAST(numero_mesa AS INTEGER)');
                 },
                 'participantes' => function($query) {
                     $query->orderBy('mesa_id')->orderBy('numero_silla');
@@ -213,6 +211,23 @@ class EventoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al exportar el evento'
+            ], 500);
+        }
+    }
+
+    /**
+     * Exportar evento a Excel (CSV)
+     */
+    public function exportarExcel($id)
+    {
+        try {
+            $exporter = new \App\Exports\EventoExport($id);
+            return $exporter->export();
+        } catch (\Exception $e) {
+            Log::error("Error al exportar evento a Excel: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al exportar el evento a Excel'
             ], 500);
         }
     }
@@ -367,12 +382,23 @@ class EventoController extends Controller
                 "Mesa {$participante->mesa->numero_mesa} - Silla {$participante->numero_silla}" :
                 'Sin asignar';
 
+            // Determinar el tipo correcto basado en el código de participante
+            $codigo = $participante->codigo_participante;
+            $tipoReal = 'Socio';
+
+            if (strpos($codigo, '-INV') !== false) {
+                $tipoReal = 'Invitado';
+            } elseif (preg_match('/^\d+-[A-Z]$/', $codigo)) {
+                // Formato: 0001-A, 0001-B, etc. (familiar)
+                $tipoReal = 'Familiar';
+            }
+
             $html .= "
                     <tr>
                         <td>{$participante->codigo_participante}</td>
                         <td>{$participante->nombre}</td>
                         <td>{$participante->dni}</td>
-                        <td>" . ucfirst($participante->tipo) . "</td>
+                        <td>{$tipoReal}</td>
                         <td>{$mesaSilla}</td>
                         <td>{$participante->n_recibo}</td>
                         <td>{$participante->n_boleta}</td>

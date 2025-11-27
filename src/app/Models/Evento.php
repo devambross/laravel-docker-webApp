@@ -9,12 +9,14 @@ class Evento extends Model
     protected $fillable = [
         'nombre',
         'fecha',
+        'fecha_fin',
         'area',
         'capacidad_total'
     ];
 
     protected $casts = [
-        'fecha' => 'date'
+        'fecha' => 'date',
+        'fecha_fin' => 'date'
     ];
 
     /**

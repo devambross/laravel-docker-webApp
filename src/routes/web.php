@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\EventoController;
 use App\Http\Controllers\MesaController;
@@ -21,7 +22,42 @@ Route::get('/registro', [PageController::class, 'registro'])->name('registro');
 Route::get('/entrada', [PageController::class, 'entrada'])->name('entrada');
 Route::get('/eventos', [EventoController::class, 'index'])->name('eventos');
 
-// ========== API ENDPOINTS ==========
+// ========== API ENDPOINTS (Requieren autenticación) ==========
+
+// Ruta de prueba de sesión
+Route::get('/api/test-session', function(Request $request) {
+    return response()->json([
+        'session_id' => $request->session()->getId(),
+        'has_user' => $request->session()->has('user'),
+        'user_data' => $request->session()->get('user'),
+        'all_session' => $request->session()->all(),
+        'cookies' => $request->cookies->all()
+    ]);
+});
+
+// Ruta de prueba POST mesa
+Route::post('/api/test-mesa', function(Request $request) {
+    return response()->json([
+        'mensaje' => 'POST recibido correctamente',
+        'has_user' => $request->session()->has('user'),
+        'data_recibida' => $request->all(),
+        'headers' => $request->headers->all()
+    ]);
+});
+
+// Ruta para contar mesas
+Route::get('/api/test-count-mesas/{eventoId}', function($eventoId) {
+    $count = \App\Models\Mesa::where('evento_id', $eventoId)->count();
+    $mesas = \App\Models\Mesa::where('evento_id', $eventoId)->get();
+    return response()->json([
+        'evento_id' => $eventoId,
+        'total_mesas' => $count,
+        'mesas' => $mesas
+    ]);
+});
+
+// RUTA MESAS POST (fuera del grupo para evitar problemas)
+Route::post('/api/mesas', [MesaController::class, 'store']);
 
 // Eventos - API nueva
 Route::prefix('api/eventos')->group(function () {
@@ -31,11 +67,11 @@ Route::prefix('api/eventos')->group(function () {
     Route::put('/{id}', [EventoController::class, 'update']); // Actualizar evento
     Route::delete('/{id}', [EventoController::class, 'destroy']); // Eliminar evento
     Route::get('/{id}/exportar', [EventoController::class, 'exportar']); // Exportar evento a PDF
+    Route::get('/{id}/exportar-excel', [EventoController::class, 'exportarExcel']); // Exportar evento a Excel
 });
 
 // Mesas
 Route::prefix('api/mesas')->group(function () {
-    Route::post('/', [MesaController::class, 'store']); // Crear mesa
     Route::get('/{id}', [MesaController::class, 'show']); // Obtener mesa específica
     Route::put('/{id}', [MesaController::class, 'update']); // Actualizar mesa
     Route::delete('/{id}', [MesaController::class, 'destroy']); // Eliminar mesa
@@ -55,10 +91,10 @@ Route::prefix('api/participantes')->group(function () {
 
 // Entrada Club
 Route::prefix('api/entrada-club')->group(function () {
-    Route::post('/', [EntradaClubController::class, 'registrar']); // Registrar entrada
-    Route::post('/buscar', [EntradaClubController::class, 'buscar']); // Buscar participantes (API + DB)
+    Route::post('/registrar', [EntradaClubController::class, 'registrarAsistencia']); // Registrar asistencia
     Route::get('/estadisticas', [EntradaClubController::class, 'estadisticas']); // Estadísticas del día
-    Route::get('/listar', [EntradaClubController::class, 'listar']); // Listar entradas del día
+    Route::get('/listar', [EntradaClubController::class, 'listar']); // Listar todos los posibles asistentes
+    Route::get('/reporte', [EntradaClubController::class, 'reporteDiario']); // Reporte diario de asistencias
 });
 
 // Entrada Evento
@@ -103,4 +139,5 @@ Route::prefix('api/socios-externos')->group(function () {
         return response()->json(['existe' => $existe, 'codigo' => $codigo]);
     });
 });
+
 

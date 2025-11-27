@@ -120,6 +120,24 @@ class SocioAPIService
     }
 
     /**
+     * Obtener TODOS los socios y familiares
+     * Para entrada del club - lista completa
+     *
+     * @return array
+     */
+    public function obtenerTodosSocios()
+    {
+        try {
+            // Usar API simulada si no hay conexión real
+            return \App\Services\SocioAPISimulada::obtenerTodosSocios();
+
+        } catch (Exception $e) {
+            Log::error("Error al obtener todos los socios: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Alias para compatibilidad con código existente
      * @deprecated Usar obtenerFamiliaresSocio() en su lugar
      */

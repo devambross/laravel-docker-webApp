@@ -43,11 +43,12 @@
 
     <!-- Estadísticas -->
     <div class="estadisticas-box">
-        <h3>Estadísticas</h3>
+        <h3>Estadísticas del Día</h3>
         <div class="stats-inline">
-            <span class="stat-item">Total: <strong id="club_total">3</strong></span>
-            <span class="stat-item presentes">Presentes: <strong id="club_presentes">0</strong></span>
-            <span class="stat-item ausentes">Ausentes: <strong id="club_ausentes">3</strong></span>
+            <span class="stat-item">Total Asistencias: <strong id="club_total_asistencias">0</strong></span>
+            <span class="stat-item socios-stat">Socios: <strong id="club_socios">0</strong></span>
+            <span class="stat-item familiares-stat">Familiares: <strong id="club_familiares">0</strong></span>
+            <span class="stat-item invitados-stat">Invitados: <strong id="club_invitados">0</strong></span>
         </div>
     </div>
 
@@ -276,6 +277,27 @@
 
     .table-wrapper {
         overflow-x: auto;
+        max-height: 315px;
+        overflow-y: auto;
+    }
+
+    .table-wrapper::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .table-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .table-wrapper::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+
+    .table-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #555;
     }
 
     .participants-table {
@@ -286,6 +308,9 @@
 
     .participants-table thead {
         background: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
     }
 
     .participants-table th {
@@ -295,6 +320,7 @@
         color: #333;
         border-bottom: 2px solid #e0e0e0;
         font-size: 0.85rem;
+        background: #f8f9fa;
     }
 
     .participants-table td {
@@ -342,9 +368,71 @@
         color: white;
     }
 
+    .badge-type.familiar {
+        background: #3498db;
+        color: white;
+    }
+
     .badge-type.invitado {
         background: #ecf0f1;
         color: #555;
+    }
+
+    /* Badge de ya asistió */
+    .ya-asistio-badge {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 0.2rem 0.6rem;
+        background: #27ae60;
+        color: white;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .ya-asistio-row {
+        background: #f0fff4;
+    }
+
+    .ya-asistio-row:hover {
+        background: #e8f8f0 !important;
+    }
+
+    /* Botón registrar asistencia */
+    .btn-registrar-asistencia {
+        padding: 0.5rem 1rem;
+        background: #78B548;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+
+    .btn-registrar-asistencia:hover {
+        background: #6a9f3f;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(120, 181, 72, 0.3);
+    }
+
+    .btn-registrar-asistencia:active {
+        transform: translateY(0);
+    }
+
+    /* Estadísticas mejoradas */
+    .stat-item.socios-stat strong {
+        color: #2c3e50;
+    }
+
+    .stat-item.familiares-stat strong {
+        color: #3498db;
+    }
+
+    .stat-item.invitados-stat strong {
+        color: #95a5a6;
     }
 
     /* Checkbox cell */
@@ -404,6 +492,16 @@
         }
     }
 
+    /* Animación de spinner */
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
     @media (max-width: 768px) {
         .entrada-club-wrapper {
             padding: 1rem;
@@ -456,58 +554,39 @@
         }
     }
 
+    let todosLosParticipantes = []; // Cache de todos los participantes/socios
+    let estadisticasAsistencias = {}; // Estadísticas del día
+
     async function buscarEntradaClub() {
-        const codigo = document.getElementById('club_search_codigo').value.trim();
-        const nombre = document.getElementById('club_search_nombre').value.trim();
-        const area = document.getElementById('club_filter_area').value;
-        const spinner = document.getElementById('spinner_entrada_club');
-        const errorDiv = document.getElementById('error_entrada_club');
-        const errorTexto = document.getElementById('error_entrada_club_texto');
+        const codigo = document.getElementById('club_search_codigo').value.trim().toLowerCase();
+        const nombre = document.getElementById('club_search_nombre').value.trim().toLowerCase();
+        const areaFiltro = document.getElementById('club_filter_area').value;
 
-        console.log('[Entrada Club] Buscando:', { codigo, nombre, area });
+        console.log('[Entrada Club] Filtrando:', { codigo, nombre, areaFiltro });
 
-        if (!codigo && !nombre) {
-            cargarTodasLasEntradas();
+        // Si no hay filtros, mostrar todos
+        if (!codigo && !nombre && !areaFiltro) {
+            mostrarResultadosClub(todosLosParticipantes);
             return;
         }
 
-        // Mostrar spinner
-        spinner.style.display = 'flex';
-        errorDiv.style.display = 'none';
+        // Filtrar localmente
+        const filtrados = todosLosParticipantes.filter(p => {
+            const matchCodigo = !codigo || (p.codigo_socio || '').toLowerCase().includes(codigo);
+            const matchNombre = !nombre || (p.nombre || '').toLowerCase().includes(nombre);
 
-        try {
-            let url = '/api/entrada-club/buscar';
-            const params = new URLSearchParams();
-
-            if (codigo) params.append('codigo', codigo);
-            if (nombre) params.append('nombre', nombre);
-
-            const response = await fetch(url + '?' + params.toString());
-
-            if (!response.ok) {
-                throw new Error('Error en la búsqueda');
+            let matchArea = true;
+            if (areaFiltro) {
+                if (areaFiltro.startsWith('evento_')) {
+                    const eventoId = parseInt(areaFiltro.replace('evento_', ''));
+                    matchArea = p.evento_id === eventoId;
+                }
             }
 
-            const data = await response.json();
+            return matchCodigo && matchNombre && matchArea;
+        });
 
-            // Ocultar spinner
-            spinner.style.display = 'none';
-
-            mostrarResultadosClub(data.participantes || []);
-            actualizarEstadisticasClub(data.participantes || []);
-        } catch (error) {
-            console.error('[Entrada Club] Error en búsqueda:', error);
-
-            // Ocultar spinner
-            spinner.style.display = 'none';
-
-            // Mostrar error
-            errorTexto.textContent = 'Error al buscar participantes. Por favor, intente nuevamente.';
-            errorDiv.style.display = 'flex';
-
-            document.getElementById('club_participants_tbody').innerHTML =
-                '<tr><td colspan="6" style="text-align:center; color:#e74c3c;">Error al buscar participantes</td></tr>';
-        }
+        mostrarResultadosClub(filtrados);
     }
 
     async function cargarTodasLasEntradas() {
@@ -520,32 +599,62 @@
         errorDiv.style.display = 'none';
 
         try {
+            // Obtener todos los socios/familiares + participantes de eventos del día
             const response = await fetch('/api/entrada-club/listar');
 
+            console.log('[Entrada Club] Response status:', response.status);
+            console.log('[Entrada Club] Response ok:', response.ok);
+
             if (!response.ok) {
-                throw new Error('Error al cargar entradas');
+                const errorData = await response.text();
+                console.error('[Entrada Club] Error response:', errorData);
+                throw new Error(`HTTP ${response.status}: ${errorData}`);
             }
 
-            const entradas = await response.json();
+            const result = await response.json();
+            console.log('[Entrada Club] Result:', result);
+
+            const participantes = result.success ? result.data : (Array.isArray(result) ? result : []);
+
+            // Guardar en cache global
+            todosLosParticipantes = participantes;
+
+            // Cargar estadísticas del día
+            await cargarEstadisticasDelDia();
 
             // Ocultar spinner
             spinner.style.display = 'none';
 
-            mostrarResultadosClub(entradas);
-            actualizarEstadisticasClub(entradas);
+            mostrarResultadosClub(participantes);
         } catch (error) {
-            console.error('[Entrada Club] Error cargando entradas:', error);
+            console.error('[Entrada Club] Error cargando participantes:', error);
 
             // Ocultar spinner
             spinner.style.display = 'none';
 
             // Mostrar error
-            errorTexto.textContent = 'Error al cargar las entradas del club. Por favor, recargue la página.';
+            errorTexto.textContent = 'Error al cargar los participantes. Por favor, recargue la página.';
             errorDiv.style.display = 'flex';
         }
     }
 
-    function mostrarResultadosClub(participantes) {
+    async function cargarEstadisticasDelDia() {
+        try {
+            const response = await fetch('/api/entrada-club/estadisticas');
+            if (!response.ok) return;
+
+            const result = await response.json();
+            estadisticasAsistencias = result.success ? result.data : {};
+
+            // Actualizar UI
+            document.getElementById('club_total_asistencias').textContent = estadisticasAsistencias.total || 0;
+            document.getElementById('club_socios').textContent = estadisticasAsistencias.socios || 0;
+            document.getElementById('club_familiares').textContent = estadisticasAsistencias.familiares || 0;
+            document.getElementById('club_invitados').textContent = estadisticasAsistencias.invitados || 0;
+        } catch (error) {
+            console.error('[Entrada Club] Error cargando estadísticas:', error);
+        }
+    }    function mostrarResultadosClub(participantes) {
         const tbody = document.getElementById('club_participants_tbody');
         tbody.innerHTML = '';
 
@@ -555,28 +664,40 @@
         }
 
         participantes.forEach(p => {
-            const tipo = p.codigo_socio.includes('-INV') ? 'invitado' :
-                         (p.codigo_socio.includes('-') ? 'familiar' : 'socio');
+            const codigo = p.codigo_socio || 'N/A';
+            const tipo = p.tipo || 'socio';
+            const yaAsistioHoy = p.ya_asistio_hoy || false;
+            const vecesAsistio = p.veces_asistio_hoy || 0;
 
             const invitadoDe = tipo === 'invitado' || tipo === 'familiar' ?
-                `<br><span class="invitado-de">(${tipo === 'invitado' ? 'Inv.' : 'Fam.'} de ${p.codigo_socio.split('-')[0]})</span>` : '';
+                `<br><span class="invitado-de">(${tipo === 'invitado' ? 'Inv.' : 'Fam.'} de ${codigo.split('-')[0]})</span>` : '';
+
+            // Mostrar evento solo si tiene evento_nombre
+            const eventoInfo = p.evento_nombre ?
+                `<div class="evento-info">${p.evento_nombre}</div>
+                 <div class="area-info">${p.mesa_silla || 'Mesa no asignada'}</div>` :
+                `<div class="area-info">Entrada general</div>`;
+
+            // Indicador visual si ya asistió hoy con número de veces
+            const indicadorAsistencia = yaAsistioHoy ?
+                `<span class="ya-asistio-badge" title="Ya registró asistencia hoy">✓ Asistió hoy ${vecesAsistio > 1 ? vecesAsistio + ' veces' : ''}</span>` : '';
 
             const row = `
-                <tr>
-                    <td>${p.codigo_socio}${invitadoDe}</td>
+                <tr ${yaAsistioHoy ? 'class="ya-asistio-row"' : ''}>
+                    <td>
+                        ${codigo}${invitadoDe}
+                        ${indicadorAsistencia}
+                    </td>
                     <td><span class="badge-type ${tipo}">${tipo}</span></td>
                     <td>${p.dni || 'N/A'}</td>
                     <td>${p.nombre}</td>
-                    <td>
-                        <div class="evento-info">${p.evento_nombre || 'N/A'}</div>
-                        <div class="area-info">${p.area || 'General'}</div>
-                    </td>
+                    <td>${eventoInfo}</td>
                     <td class="checkbox-cell">
-                        <label class="checkbox-container">
-                            <input type="checkbox" ${p.entrada_club ? 'checked' : ''}
-                                   onchange="toggleAsistenciaClub(this, '${p.codigo_socio}', ${p.id})">
-                            <span class="checkmark"></span>
-                        </label>
+                        <button class="btn-registrar-asistencia"
+                                onclick="registrarAsistencia('${codigo}', '${tipo}', '${p.nombre}', '${p.dni || ''}', ${p.evento_id || 'null'}, '${p.evento_nombre || ''}')"
+                                ${yaAsistioHoy ? '' : ''}>
+                            ${yaAsistioHoy ? 'Registrar otra entrada' : 'Registrar entrada'}
+                        </button>
                     </td>
                 </tr>
             `;
@@ -584,40 +705,39 @@
         });
     }
 
-    function actualizarEstadisticasClub(participantes) {
-        const total = participantes.length;
-        const presentes = participantes.filter(p => p.entrada_club).length;
-        const ausentes = total - presentes;
+    async function registrarAsistencia(codigo, tipo, nombre, dni, eventoId, eventoNombre) {
+        console.log('[Entrada Club] Registrando asistencia:', { codigo, tipo, nombre, eventoId });
 
-        document.getElementById('club_total').textContent = total;
-        document.getElementById('club_presentes').textContent = presentes;
-        document.getElementById('club_ausentes').textContent = ausentes;
-    }
+        // Encontrar la fila y el botón
+        const filas = document.querySelectorAll('#club_participants_tbody tr');
+        let botonTarget = null;
+        let filaTarget = null;
 
-    async function toggleAsistenciaClub(checkbox, codigoSocio, participanteId) {
-        const isPresent = checkbox.checked;
-        console.log('[Entrada Club] Toggle asistencia:', codigoSocio, isPresent);
-
-        // Actualizar estadísticas localmente primero
-        const presentesEl = document.getElementById('club_presentes');
-        const ausentesEl = document.getElementById('club_ausentes');
-
-        let presentes = parseInt(presentesEl.textContent);
-        let ausentes = parseInt(ausentesEl.textContent);
-
-        if (isPresent) {
-            presentes++;
-            ausentes--;
-        } else {
-            presentes--;
-            ausentes++;
+        for (let fila of filas) {
+            const celdaCodigo = fila.cells[0].textContent;
+            if (celdaCodigo.includes(codigo)) {
+                filaTarget = fila;
+                botonTarget = fila.querySelector('.btn-registrar-asistencia');
+                break;
+            }
         }
 
-        presentesEl.textContent = presentes;
-        ausentesEl.textContent = ausentes;
+        // Guardar texto original
+        const textoOriginal = botonTarget ? botonTarget.innerHTML : '';
 
-        // Guardar en el backend
         try {
+            // Mostrar icono de carga en el botón
+            if (botonTarget) {
+                botonTarget.disabled = true;
+                botonTarget.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite; vertical-align: middle;">
+                        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+                        <path d="M12 2a10 10 0 0110 10" stroke-opacity="1"/>
+                    </svg>
+                    Registrando...
+                `;
+            }
+
             const response = await fetch('/api/entrada-club/registrar', {
                 method: 'POST',
                 headers: {
@@ -625,38 +745,94 @@
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                 },
                 body: JSON.stringify({
-                    codigo: codigoSocio,
-                    entrada_club: isPresent
+                    codigo_socio: codigo,
+                    tipo: tipo,
+                    nombre: nombre,
+                    dni: dni,
+                    evento_id: eventoId,
+                    evento_nombre: eventoNombre
                 })
             });
 
             if (!response.ok) {
-                throw new Error('Error al guardar');
+                throw new Error('Error al registrar asistencia');
             }
 
-            console.log('[Entrada Club] Asistencia guardada correctamente');
+            const result = await response.json();
+            console.log('[Entrada Club] Asistencia registrada:', result);
+
+            // Mostrar notificación (si la función existe)
+            try {
+                if (typeof mostrarNotificacion === 'function') {
+                    mostrarNotificacion(`Asistencia registrada para ${nombre}`, 'success');
+                }
+            } catch (e) {
+                console.log('[Entrada Club] Notificación no disponible');
+            }
+
+            // Actualizar estado en cache local
+            const participante = todosLosParticipantes.find(p => p.codigo_socio === codigo);
+            if (participante) {
+                participante.ya_asistio_hoy = true;
+                participante.veces_asistio_hoy = (participante.veces_asistio_hoy || 0) + 1;
+            }
+
+            // Actualizar solo la fila afectada
+            if (filaTarget) {
+                // Agregar clase de ya asistió
+                filaTarget.classList.add('ya-asistio-row');
+
+                // Actualizar o agregar badge "✓ Asistió hoy" en la primera celda
+                const celdaCodigo = filaTarget.cells[0];
+                const badgeExistente = celdaCodigo.querySelector('.ya-asistio-badge');
+                const vecesTotal = (participante ? participante.veces_asistio_hoy : 1);
+                const textoBadge = vecesTotal > 1 ? `✓ Asistió hoy ${vecesTotal} veces` : '✓ Asistió hoy';
+
+                if (badgeExistente) {
+                    badgeExistente.textContent = textoBadge;
+                } else {
+                    const badge = document.createElement('span');
+                    badge.className = 'ya-asistio-badge';
+                    badge.title = 'Ya registró asistencia hoy';
+                    badge.textContent = textoBadge;
+                    celdaCodigo.appendChild(badge);
+                }
+
+                // Actualizar botón
+                if (botonTarget) {
+                    botonTarget.disabled = false;
+                    botonTarget.innerHTML = 'Registrar otra entrada';
+                }
+            }
+
+            // Recargar estadísticas
+            await cargarEstadisticasDelDia();
+
         } catch (error) {
-            console.error('[Entrada Club] Error guardando asistencia:', error);
-            // Revertir el cambio en caso de error
-            checkbox.checked = !isPresent;
-            if (isPresent) {
-                presentes--;
-                ausentes++;
-            } else {
-                presentes++;
-                ausentes--;
-            }
-            presentesEl.textContent = presentes;
-            ausentesEl.textContent = ausentes;
+            console.error('[Entrada Club] Error registrando asistencia:', error);
 
-            alert('Error al guardar la asistencia. Por favor, intente nuevamente.');
+            // Mostrar notificación de error (si la función existe)
+            try {
+                if (typeof mostrarNotificacion === 'function') {
+                    mostrarNotificacion('Error al registrar la asistencia. Intente nuevamente.', 'error');
+                } else {
+                    alert('Error al registrar la asistencia. Intente nuevamente.');
+                }
+            } catch (e) {
+                alert('Error al registrar la asistencia. Intente nuevamente.');
+            }
+
+            // Restaurar botón original
+            if (botonTarget) {
+                botonTarget.disabled = false;
+                botonTarget.innerHTML = textoOriginal;
+            }
         }
     }
 
     function exportarPDFClub() {
-        console.log('[Entrada Club] Exportando PDF...');
-        alert('Exportando lista de asistencia a PDF...');
-        // window.location.href = '/api/entrada-club/export-pdf';
+        console.log('[Entrada Club] Exportando reporte del día...');
+        window.open('/api/entrada-club/reporte?formato=pdf', '_blank');
     }
 
     // Agregar listeners para búsqueda en tiempo real
@@ -665,18 +841,20 @@
         cargarEventosEnFiltro();
 
         // Cargar todas las entradas al inicio
-        cargarTodasLasEntradas();
+        cargarTodasLasEntradas().then(() => {
+            console.log('[Entrada Club] Participantes cargados:', todosLosParticipantes.length);
+        });
 
-        // Búsqueda en tiempo real
+        // Búsqueda en tiempo real con debounce
         let searchTimeout;
         document.getElementById('club_search_codigo').addEventListener('input', function() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(buscarEntradaClub, 500);
+            searchTimeout = setTimeout(buscarEntradaClub, 300);
         });
 
         document.getElementById('club_search_nombre').addEventListener('input', function() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(buscarEntradaClub, 500);
+            searchTimeout = setTimeout(buscarEntradaClub, 300);
         });
 
         document.getElementById('club_filter_area').addEventListener('change', buscarEntradaClub);

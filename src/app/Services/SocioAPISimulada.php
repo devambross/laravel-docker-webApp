@@ -80,8 +80,8 @@ class SocioAPISimulada
                 ]
             ]
         ],
-        '0234' => [
-            'codigo' => '0234',
+        '0004' => [
+            'codigo' => '0004',
             'dni' => '45678901',
             'nombre' => 'Roberto Sánchez Díaz',
             'telefono' => '954321098',
@@ -89,8 +89,8 @@ class SocioAPISimulada
             'estado' => 'activo',
             'familiares' => []
         ],
-        '0500' => [
-            'codigo' => '0500',
+        '0005' => [
+            'codigo' => '0005',
             'dni' => '78901234',
             'nombre' => 'Luis García Morales',
             'telefono' => '943210987',
@@ -98,13 +98,213 @@ class SocioAPISimulada
             'estado' => 'activo',
             'familiares' => [
                 [
-                    'codigo' => '0500-A',
+                    'codigo' => '0005-A',
                     'dni' => '89012345',
                     'nombre' => 'Carmen Morales Vega',
                     'parentesco' => 'Esposa',
                     'edad' => 38
+                ],
+                [
+                    'codigo' => '0005-B',
+                    'dni' => '90123456',
+                    'nombre' => 'Diego García Morales',
+                    'parentesco' => 'Hijo',
+                    'edad' => 10
                 ]
             ]
+        ],
+        '0006' => [
+            'codigo' => '0006',
+            'dni' => '56789012',
+            'nombre' => 'Patricia Fernández Castro',
+            'telefono' => '932109876',
+            'email' => 'patricia.fernandez@email.com',
+            'estado' => 'activo',
+            'familiares' => [
+                [
+                    'codigo' => '0006-A',
+                    'dni' => '67890123',
+                    'nombre' => 'Miguel Castro Ruiz',
+                    'parentesco' => 'Esposo',
+                    'edad' => 45
+                ],
+                [
+                    'codigo' => '0006-B',
+                    'dni' => '78901234',
+                    'nombre' => 'Valentina Castro Fernández',
+                    'parentesco' => 'Hija',
+                    'edad' => 16
+                ],
+                [
+                    'codigo' => '0006-C',
+                    'dni' => '89012345',
+                    'nombre' => 'Mateo Castro Fernández',
+                    'parentesco' => 'Hijo',
+                    'edad' => 13
+                ]
+            ]
+        ],
+        '0007' => [
+            'codigo' => '0007',
+            'dni' => '90123456',
+            'nombre' => 'Fernando López Vargas',
+            'telefono' => '921098765',
+            'email' => 'fernando.lopez@email.com',
+            'estado' => 'activo',
+            'familiares' => [
+                [
+                    'codigo' => '0007-A',
+                    'dni' => '01234567',
+                    'nombre' => 'Isabel Vargas Ramos',
+                    'parentesco' => 'Esposa',
+                    'edad' => 40
+                ]
+            ]
+        ],
+        '0008' => [
+            'codigo' => '0008',
+            'dni' => '12340987',
+            'nombre' => 'Gabriela Torres Medina',
+            'telefono' => '910987654',
+            'email' => 'gabriela.torres@email.com',
+            'estado' => 'activo',
+            'familiares' => [
+                [
+                    'codigo' => '0008-A',
+                    'dni' => '23451098',
+                    'nombre' => 'Ricardo Medina Soto',
+                    'parentesco' => 'Esposo',
+                    'edad' => 43
+                ],
+                [
+                    'codigo' => '0008-B',
+                    'dni' => '34562109',
+                    'nombre' => 'Lucía Medina Torres',
+                    'parentesco' => 'Hija',
+                    'edad' => 18
+                ],
+                [
+                    'codigo' => '0008-C',
+                    'dni' => '45673210',
+                    'nombre' => 'Andrés Medina Torres',
+                    'parentesco' => 'Hijo',
+                    'edad' => 14
+                ]
+            ]
+        ],
+        '0009' => [
+            'codigo' => '0009',
+            'dni' => '56784321',
+            'nombre' => 'Diego Ramírez Ortiz',
+            'telefono' => '909876543',
+            'email' => 'diego.ramirez@email.com',
+            'estado' => 'activo',
+            'familiares' => []
+        ],
+        '0010' => [
+            'codigo' => '0010',
+            'dni' => '67895432',
+            'nombre' => 'Sofía Mendoza Flores',
+            'telefono' => '998765432',
+            'email' => 'sofia.mendoza@email.com',
+            'estado' => 'activo',
+            'familiares' => [
+                [
+                    'codigo' => '0010-A',
+                    'dni' => '78906543',
+                    'nombre' => 'Javier Flores Campos',
+                    'parentesco' => 'Esposo',
+                    'edad' => 39
+                ],
+                [
+                    'codigo' => '0010-B',
+                    'dni' => '89017654',
+                    'nombre' => 'Emma Flores Mendoza',
+                    'parentesco' => 'Hija',
+                    'edad' => 11
+                ]
+            ]
+        ],
+        '0011' => [
+            'codigo' => '0011',
+            'dni' => '90128765',
+            'nombre' => 'Mario Herrera Gutiérrez',
+            'telefono' => '987654320',
+            'email' => 'mario.herrera@email.com',
+            'estado' => 'activo',
+            'familiares' => [
+                [
+                    'codigo' => '0011-A',
+                    'dni' => '01239876',
+                    'nombre' => 'Rosa Gutiérrez Ponce',
+                    'parentesco' => 'Esposa',
+                    'edad' => 36
+                ],
+                [
+                    'codigo' => '0011-B',
+                    'dni' => '12340987',
+                    'nombre' => 'Martín Herrera Gutiérrez',
+                    'parentesco' => 'Hijo',
+                    'edad' => 9
+                ],
+                [
+                    'codigo' => '0011-C',
+                    'dni' => '23451098',
+                    'nombre' => 'Paula Herrera Gutiérrez',
+                    'parentesco' => 'Hija',
+                    'edad' => 6
+                ]
+            ]
+        ],
+        '0012' => [
+            'codigo' => '0012',
+            'dni' => '34562109',
+            'nombre' => 'Elena Vega Paredes',
+            'telefono' => '976543219',
+            'email' => 'elena.vega@email.com',
+            'estado' => 'activo',
+            'familiares' => [
+                [
+                    'codigo' => '0012-A',
+                    'dni' => '45673210',
+                    'nombre' => 'Alberto Paredes Luna',
+                    'parentesco' => 'Esposo',
+                    'edad' => 44
+                ]
+            ]
+        ],
+        '0234' => [
+            'codigo' => '0234',
+            'dni' => '11223344',
+            'nombre' => 'Jorge Castillo Montes',
+            'telefono' => '965432108',
+            'email' => 'jorge.castillo@email.com',
+            'estado' => 'activo',
+            'familiares' => [
+                [
+                    'codigo' => '0234-A',
+                    'dni' => '22334455',
+                    'nombre' => 'Claudia Montes Rivera',
+                    'parentesco' => 'Esposa',
+                    'edad' => 37
+                ],
+                [
+                    'codigo' => '0234-B',
+                    'dni' => '33445566',
+                    'nombre' => 'Santiago Castillo Montes',
+                    'parentesco' => 'Hijo',
+                    'edad' => 15
+                ]
+            ]
+        ],
+        '0500' => [
+            'codigo' => '0500',
+            'dni' => '55667788',
+            'nombre' => 'Andrea Campos Navarro',
+            'telefono' => '954321097',
+            'email' => 'andrea.campos@email.com',
+            'estado' => 'activo',
+            'familiares' => []
         ]
     ];
 
@@ -223,5 +423,40 @@ class SocioAPISimulada
     public static function getAllSocios()
     {
         return self::$socios;
+    }
+
+    /**
+     * Obtener TODOS los socios y familiares en un array plano
+     * Para entrada del club
+     */
+    public static function obtenerTodosSocios()
+    {
+        $resultado = [];
+
+        foreach (self::$socios as $socio) {
+            // Agregar socio principal
+            $resultado[] = [
+                'codigo' => $socio['codigo'],
+                'dni' => $socio['dni'],
+                'nombre' => $socio['nombre'],
+                'telefono' => $socio['telefono'] ?? null,
+                'email' => $socio['email'] ?? null,
+                'tipo' => 'socio'
+            ];
+
+            // Agregar familiares
+            foreach ($socio['familiares'] as $familiar) {
+                $resultado[] = [
+                    'codigo' => $familiar['codigo'],
+                    'dni' => $familiar['dni'],
+                    'nombre' => $familiar['nombre'],
+                    'parentesco' => $familiar['parentesco'] ?? null,
+                    'edad' => $familiar['edad'] ?? null,
+                    'tipo' => 'familiar'
+                ];
+            }
+        }
+
+        return $resultado;
     }
 }

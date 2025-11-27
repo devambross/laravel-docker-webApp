@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\EntradaClub;
+use App\Models\AsistenciaDiaria;
+use App\Models\Evento;
+use App\Models\ParticipanteEvento;
 use App\Services\SocioAPIService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -18,140 +20,181 @@ class EntradaClubController extends Controller
     }
 
     /**
-     * Registrar entrada al club
-     *
-     * Tipos de participantes:
-     * - tipo='socio': Socios (####) y Familiares (####-XXX) de API
-     * - tipo='invitado': Invitados temporales (####) NO permanentes
+     * Listar todos los posibles asistentes del día
+     * - Todos los socios y familiares del API
+     * - Participantes de eventos del día (socios ya listados + invitados)
      */
-    public function registrar(Request $request)
+    public function listar(Request $request)
     {
-        $validated = $request->validate([
-            'codigo_participante' => 'required|string|max:50',
-            'tipo' => 'required|in:socio,invitado',
-            'nombre' => 'required|string|max:255',
-            'dni' => 'nullable|string|max:20',
-            'area' => 'nullable|string|max:100'
-        ]);
-
         try {
-            $entrada = EntradaClub::create([
-                'codigo_participante' => $validated['codigo_participante'],
-                'tipo' => $validated['tipo'],
-                'nombre' => $validated['nombre'],
-                'dni' => $validated['dni'] ?? null,
-                'area' => $validated['area'] ?? 'General',
-                'fecha_hora' => now()
-            ]);
+            $hoy = Carbon::today();
+            Log::info("Fecha de hoy: " . $hoy->toDateString());
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Entrada registrada exitosamente',
-                'data' => $entrada
-            ], 201);
-
-        } catch (\Exception $e) {
-            Log::error("Error al registrar entrada: " . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al registrar la entrada'
-            ], 500);
-        }
-    }
-
-    /**
-     * Buscar participantes (API + DB local) para entrada al club
-     *
-     * Fuentes:
-     * - API Externa: Socios (####) y Familiares (####-XXX) permanentes
-     * - DB Local: Historial incluyendo invitados temporales (####)
-     */
-    public function buscar(Request $request)
-    {
-        $validated = $request->validate([
-            'termino' => 'required|string|min:1'
-        ]);
-
-        try {
-            $termino = $validated['termino'];
             $resultados = [];
+            $codigosYaAsistieron = AsistenciaDiaria::codigosAsistieronHoy();
 
-            // 1. Buscar en API externa (socios #### y familiares ####-XXX)
-            $sociosAPI = $this->socioAPI->buscarSocios($termino);
+            // Obtener conteo de asistencias por código
+            $conteoPorCodigo = [];
 
-            foreach ($sociosAPI as $socio) {
-                $resultados[] = [
-                    'codigo' => $socio['codigo'] ?? '',
-                    'tipo' => 'socio',
-                    'nombre' => $socio['nombre'] ?? '',
-                    'dni' => $socio['dni'] ?? '',
-                    'area' => 'General',
-                    'fuente' => 'api'
+            // 1. Obtener TODOS los socios y familiares del API
+            $todosLosSocios = $this->socioAPI->obtenerTodosSocios();
+
+            foreach ($todosLosSocios as $socio) {
+                $codigo = $socio['codigo'];
+                $tipo = strpos($codigo, '-') !== false ? 'familiar' : 'socio';
+
+                // Contar asistencias si ya asistió
+                $vecesAsistio = in_array($codigo, $codigosYaAsistieron)
+                    ? AsistenciaDiaria::contarAsistenciasHoy($codigo)
+                    : 0;
+
+                $resultados[$codigo] = [
+                    'codigo_socio' => $codigo,
+                    'tipo' => $tipo,
+                    'nombre' => $socio['nombre'],
+                    'dni' => $socio['dni'] ?? null,
+                    'evento_id' => null,
+                    'evento_nombre' => null,
+                    'mesa_silla' => null,
+                    'fuente' => 'api',
+                    'ya_asistio_hoy' => in_array($codigo, $codigosYaAsistieron),
+                    'veces_asistio_hoy' => $vecesAsistio
                 ];
             }
 
-            // 2. Buscar en base de datos local (entrada_club histórico)
-            $entradasDB = EntradaClub::buscar($termino)
-                                    ->latest('fecha_hora')
-                                    ->take(10)
-                                    ->get();
+            // 2. Obtener eventos activos HOY (fecha_inicio <= hoy <= fecha_fin)
+            $eventosHoy = Evento::where(function($query) use ($hoy) {
+                $query->whereDate('fecha', '<=', $hoy)
+                      ->where(function($q) use ($hoy) {
+                          $q->whereDate('fecha_fin', '>=', $hoy)
+                            ->orWhereNull('fecha_fin');
+                      });
+            })->get();
 
-            foreach ($entradasDB as $entrada) {
-                // Evitar duplicados
-                $existe = collect($resultados)->contains(function($r) use ($entrada) {
-                    return $r['codigo'] === $entrada->codigo_participante;
-                });
+            Log::info("Fecha de hoy: " . $hoy->toDateString());
+            Log::info("Eventos activos hoy: " . $eventosHoy->count());
 
-                if (!$existe) {
-                    $resultados[] = [
-                        'codigo' => $entrada->codigo_participante,
-                        'tipo' => $entrada->tipo,
-                        'nombre' => $entrada->nombre,
-                        'dni' => $entrada->dni ?? '',
-                        'area' => $entrada->area ?? 'General',
-                        'fuente' => 'db'
-                    ];
+            foreach ($eventosHoy as $evt) {
+                Log::info("Evento activo: {$evt->nombre}, Fecha inicio: {$evt->fecha}, Fecha fin: {$evt->fecha_fin}");
+            }
+
+            foreach ($eventosHoy as $evento) {
+                // Obtener participantes del evento
+                $participantes = ParticipanteEvento::where('evento_id', $evento->id)
+                                                   ->with(['mesa'])
+                                                   ->get();
+
+                Log::info("Evento: {$evento->nombre}, Participantes: " . $participantes->count());
+
+                foreach ($participantes as $p) {
+                    $codigo = $p->codigo_participante;
+
+                    Log::info("Procesando participante: {$codigo}");
+
+                    $tipo = strpos($codigo, '-INV') !== false ? 'invitado' :
+                           (strpos($codigo, '-') !== false ? 'familiar' : 'socio');
+
+                    // Si es socio/familiar y ya está en la lista, actualizar con info del evento
+                    if (isset($resultados[$codigo]) && ($tipo === 'socio' || $tipo === 'familiar')) {
+                        Log::info("Actualizando socio/familiar {$codigo} con evento {$evento->nombre}");
+                        $resultados[$codigo]['evento_id'] = $evento->id;
+                        $resultados[$codigo]['evento_nombre'] = $evento->nombre;
+                        $resultados[$codigo]['mesa_silla'] = $p->mesa_silla;
+                    }
+                    // Si es invitado, agregarlo solo si es evento de hoy
+                    else if ($tipo === 'invitado') {
+                        Log::info("Agregando invitado {$codigo} del evento {$evento->nombre}");
+
+                        $vecesAsistio = in_array($codigo, $codigosYaAsistieron)
+                            ? AsistenciaDiaria::contarAsistenciasHoy($codigo)
+                            : 0;
+
+                        $resultados[$codigo] = [
+                            'codigo_socio' => $codigo,
+                            'tipo' => 'invitado',
+                            'nombre' => $p->nombre,
+                            'dni' => $p->dni,
+                            'evento_id' => $evento->id,
+                            'evento_nombre' => $evento->nombre,
+                            'mesa_silla' => $p->mesa_silla,
+                            'fuente' => 'evento',
+                            'ya_asistio_hoy' => in_array($codigo, $codigosYaAsistieron),
+                            'veces_asistio_hoy' => $vecesAsistio
+                        ];
+                    } else {
+                        Log::warning("Participante {$codigo} no coincide - Tipo: {$tipo}, En resultados: " . (isset($resultados[$codigo]) ? 'SI' : 'NO'));
+                    }
                 }
             }
 
             return response()->json([
                 'success' => true,
-                'data' => $resultados
+                'data' => array_values($resultados)
             ]);
 
         } catch (\Exception $e) {
-            Log::error("Error al buscar participantes: " . $e->getMessage());
+            Log::error("Error al listar participantes para entrada club: " . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al buscar participantes'
+                'message' => 'Error al cargar participantes'
             ], 500);
         }
     }
 
     /**
-     * Obtener estadísticas de entrada al club
+     * Registrar asistencia diaria
+     */
+    public function registrarAsistencia(Request $request)
+    {
+        $validated = $request->validate([
+            'codigo_socio' => 'required|string|max:50',
+            'tipo' => 'required|in:socio,familiar,invitado',
+            'nombre' => 'required|string|max:255',
+            'dni' => 'nullable|string|max:20',
+            'evento_id' => 'nullable|integer|exists:eventos,id',
+            'evento_nombre' => 'nullable|string|max:255'
+        ]);
+
+        try {
+            $asistencia = AsistenciaDiaria::create([
+                'codigo_socio' => $validated['codigo_socio'],
+                'tipo' => $validated['tipo'],
+                'nombre' => $validated['nombre'],
+                'dni' => $validated['dni'] ?? null,
+                'evento_id' => $validated['evento_id'] ?? null,
+                'evento_nombre' => $validated['evento_nombre'] ?? null,
+                'fecha_hora_entrada' => now(),
+                'fecha' => Carbon::today()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Asistencia registrada exitosamente',
+                'data' => $asistencia
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error("Error al registrar asistencia: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar la asistencia'
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener estadísticas del día
      */
     public function estadisticas(Request $request)
     {
         $fecha = $request->get('fecha', Carbon::today()->format('Y-m-d'));
 
         try {
-            $total = EntradaClub::whereDate('fecha_hora', $fecha)->count();
-            $socios = EntradaClub::whereDate('fecha_hora', $fecha)
-                                ->where('tipo', 'socio')
-                                ->count();
-            $invitados = EntradaClub::whereDate('fecha_hora', $fecha)
-                                   ->where('tipo', 'invitado')
-                                   ->count();
+            $stats = AsistenciaDiaria::estadisticasDelDia($fecha);
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'total' => $total,
-                    'socios' => $socios,
-                    'invitados' => $invitados,
-                    'fecha' => $fecha
-                ]
+                'data' => $stats
             ]);
 
         } catch (\Exception $e) {
@@ -164,27 +207,29 @@ class EntradaClubController extends Controller
     }
 
     /**
-     * Listar entradas por fecha
+     * Obtener reporte diario de asistencias
      */
-    public function listar(Request $request)
+    public function reporteDiario(Request $request)
     {
         $fecha = $request->get('fecha', Carbon::today()->format('Y-m-d'));
 
         try {
-            $entradas = EntradaClub::whereDate('fecha_hora', $fecha)
-                                  ->orderBy('fecha_hora', 'desc')
-                                  ->get();
+            $asistencias = AsistenciaDiaria::asistenciasDelDia($fecha);
+            $stats = AsistenciaDiaria::estadisticasDelDia($fecha);
 
             return response()->json([
                 'success' => true,
-                'data' => $entradas
+                'data' => [
+                    'asistencias' => $asistencias,
+                    'estadisticas' => $stats
+                ]
             ]);
 
         } catch (\Exception $e) {
-            Log::error("Error al listar entradas: " . $e->getMessage());
+            Log::error("Error al generar reporte diario: " . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al listar entradas'
+                'message' => 'Error al generar el reporte'
             ], 500);
         }
     }

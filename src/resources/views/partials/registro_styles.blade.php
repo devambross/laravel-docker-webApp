@@ -91,7 +91,7 @@
         display: flex;
         gap: 1.5rem;
         padding: 1.5rem;
-        background: #fafafa;
+        background: #e8e8e8;
         min-height: calc(100vh - 250px);
     }
 
@@ -265,9 +265,10 @@
 
     /* Wrappers con scroll para secciones */
     .capacity-scroll-wrapper, .mesas-scroll-wrapper {
-        max-height: 215px; /* ~2 elementos (cada evento ~100px + margin) */
+        flex: 1;
         overflow-y: auto;
         padding-right: 0.5rem;
+        min-height: 0;
     }
 
     .disposition-scroll-wrapper {
@@ -310,6 +311,21 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
 
+    /* Altura fija para capacity y mesas sections */
+    .capacity-section, .mesas-section {
+        height: 380px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .capacity-section h3, .mesas-section h3 {
+        flex-shrink: 0;
+    }
+
+    .capacity-section .section-subtitle, .mesas-section .section-subtitle {
+        flex-shrink: 0;
+    }
+
     .capacity-section h3, .mesas-section h3, .disposition-section h3 {
         color: #78B548;
         font-size: 1.2rem;
@@ -320,6 +336,37 @@
         color: #999;
         font-size: 0.85rem;
         margin-bottom: 1rem;
+    }
+
+    /* Header con filtro para gestión de mesas */
+    .section-header-with-filter {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        flex-shrink: 0;
+    }
+
+    .section-title-group {
+        flex: 1;
+    }
+
+    .section-title-group h3 {
+        margin-bottom: 0.3rem;
+    }
+
+    .section-title-group .section-subtitle {
+        margin-bottom: 0;
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-group select {
+        min-width: 180px;
     }
 
     /* Tarjetas de eventos */
@@ -488,6 +535,8 @@
         height: 100%;
         background: rgba(0,0,0,0.5);
         animation: fadeIn 0.3s ease;
+        align-items: center;
+        justify-content: center;
     }
 
     .modal.show {
@@ -604,6 +653,60 @@
     .btn-save:hover {
         background: #1a252f;
         box-shadow: 0 4px 12px rgba(44, 62, 80, 0.3);
+    }
+
+    /* Estilos para modal de confirmación de eliminación */
+    .modal-confirm {
+        max-width: 450px;
+    }
+
+    .modal-header-danger {
+        border-bottom-color: #e74c3c;
+        background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+    }
+
+    .modal-header-danger h2 {
+        color: #e74c3c;
+        font-size: 1.3rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .modal-confirm-text {
+        font-size: 1rem;
+        color: #333;
+        margin-bottom: 1rem;
+        line-height: 1.6;
+    }
+
+    .modal-warning {
+        font-size: 0.85rem;
+        color: #e67e22;
+        font-weight: 600;
+        padding: 0.8rem;
+        background: #fff3e0;
+        border-left: 3px solid #e67e22;
+        border-radius: 4px;
+        margin-bottom: 0;
+    }
+
+    .btn-delete {
+        flex: 1;
+        padding: 0.8rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #e74c3c;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background: #c0392b;
+        box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+        transform: translateY(-1px);
     }
 
     /* Info message in modal */
@@ -1000,6 +1103,68 @@
     }
 
     /* Reutilizar estilos de btn-icon-action para eventos */
+    .event-actions .btn-icon-action.view {
+        background: rgba(155, 89, 182, 0.15);
+        border-color: rgba(155, 89, 182, 0.3);
+    }
+
+    .event-actions .btn-icon-action.view:hover {
+        background: rgba(155, 89, 182, 0.25);
+        border-color: rgba(155, 89, 182, 0.5);
+    }
+
+    .event-actions .btn-icon-action.view svg {
+        stroke: #9b59b6;
+    }
+
+    /* Dropdown de exportación */
+    .export-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .export-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 4px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        min-width: 120px;
+        overflow: hidden;
+    }
+
+    .export-menu.show {
+        display: block;
+    }
+
+    .export-menu button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 10px 14px;
+        border: none;
+        background: white;
+        color: #333;
+        font-size: 0.9rem;
+        text-align: left;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .export-menu button:hover {
+        background: #f8f9fa;
+    }
+
+    .export-menu button svg {
+        flex-shrink: 0;
+    }
+
     .event-actions .btn-icon-action.export {
         background: rgba(52, 152, 219, 0.15);
         border-color: rgba(52, 152, 219, 0.3);
@@ -1040,5 +1205,332 @@
 
     .event-actions .btn-icon-action.delete svg {
         stroke: #e74c3c;
+    }
+
+    /* Modal grande para disposición */
+    .modal-large {
+        max-width: 900px !important;
+    }
+
+    .modal-large .disposition-table-wrapper {
+        max-height: 500px;
+        overflow-y: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+    }
+
+    /* Sistema de notificaciones */
+    .notification-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+    }
+
+    .notification {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        padding: 16px 20px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s;
+        border-left: 4px solid #78B548;
+    }
+
+    .notification.success {
+        border-left-color: #78B548;
+    }
+
+    .notification.error {
+        border-left-color: #e74c3c;
+    }
+
+    .notification.warning {
+        border-left-color: #f39c12;
+    }
+
+    .notification.info {
+        border-left-color: #3498db;
+    }
+
+    .notification-icon {
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .notification.success .notification-icon {
+        background: #78B548;
+    }
+
+    .notification.error .notification-icon {
+        background: #e74c3c;
+    }
+
+    .notification.warning .notification-icon {
+        background: #f39c12;
+    }
+
+    .notification.info .notification-icon {
+        background: #3498db;
+    }
+
+    .notification-icon svg {
+        stroke: white;
+    }
+
+    .notification-content {
+        flex: 1;
+    }
+
+    .notification-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 2px;
+        font-size: 14px;
+    }
+
+    .notification-message {
+        color: #666;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .notification-close {
+        background: none;
+        border: none;
+        color: #999;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s;
+    }
+
+    .notification-close:hover {
+        color: #333;
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+        }
+        to {
+            opacity: 0;
+        }
+    }
+
+    /* Estilos para el selector de mesa y silla */
+    .mesa-silla-selector {
+        border: 2px dashed #78B548;
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #fafafa;
+        min-height: 50px;
+    }
+
+    .mesa-silla-selector:hover {
+        background: #f0f8f0;
+        border-color: #6aa23f;
+        transform: translateY(-1px);
+    }
+
+    .mesa-silla-placeholder {
+        color: #999;
+        flex: 1;
+    }
+
+    .mesa-silla-selector.selected {
+        border-style: solid;
+        background: #e8f5e9;
+    }
+
+    .mesa-silla-selector.selected .mesa-silla-placeholder {
+        color: #333;
+        font-weight: 500;
+    }
+
+    /* Grid de mesas disponibles */
+    .mesas-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+        max-height: 500px;
+        overflow-y: auto;
+        padding: 0.5rem;
+    }
+
+    .mesa-card {
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .mesa-card:hover {
+        border-color: #78B548;
+        box-shadow: 0 4px 12px rgba(120, 181, 72, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .mesa-card.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #f5f5f5;
+    }
+
+    .mesa-card.disabled:hover {
+        border-color: #e0e0e0;
+        box-shadow: none;
+        transform: none;
+    }
+
+    .mesa-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.8rem;
+        padding-bottom: 0.8rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .mesa-numero {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .mesa-capacidad {
+        font-size: 0.9rem;
+        color: #666;
+        background: #f0f0f0;
+        padding: 4px 10px;
+        border-radius: 12px;
+    }
+
+    .mesa-capacidad.llena {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .sillas-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .silla-item {
+        aspect-ratio: 1;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        background: white;
+    }
+
+    .silla-item:hover:not(.ocupada) {
+        border-color: #78B548;
+        background: #f0f8f0;
+        transform: scale(1.05);
+    }
+
+    .silla-item.ocupada {
+        background: #f5f5f5;
+        color: #999;
+        cursor: not-allowed;
+        border-color: #e0e0e0;
+    }
+
+    .silla-item.seleccionada {
+        background: #78B548;
+        color: white;
+        border-color: #78B548;
+        font-weight: 600;
+    }
+
+    .silla-numero {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .silla-estado {
+        font-size: 0.7rem;
+        opacity: 0.8;
+    }
+
+    .participantes-preview {
+        background: #f9f9f9;
+        border-radius: 6px;
+        padding: 0.8rem;
+        margin-top: 0.8rem;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+
+    .participantes-preview h4 {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 0.5rem;
+    }
+
+    .participante-item {
+        font-size: 0.8rem;
+        color: #555;
+        padding: 0.3rem 0;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .participante-item:last-child {
+        border-bottom: none;
+    }
+
+    .participante-nombre {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .participante-silla {
+        color: #78B548;
+        font-size: 0.75rem;
+        margin-left: 0.5rem;
+    }
+
+    .modal-large {
+        max-width: 900px;
     }
 </style>

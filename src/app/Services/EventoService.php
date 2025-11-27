@@ -16,6 +16,7 @@ class EventoService
                 'id' => $evento->id,
                 'nombre' => $evento->nombre,
                 'fecha' => $evento->fecha->format('Y-m-d'),
+                'fecha_fin' => $evento->fecha_fin ? $evento->fecha_fin->format('Y-m-d') : null,
                 'descripcion' => $evento->area ?? ''
             ];
         })->toArray();

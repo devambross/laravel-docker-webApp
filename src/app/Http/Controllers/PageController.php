@@ -6,13 +6,21 @@ use Illuminate\Http\Request;
 
 Class PageController extends Controller
 {
-    public function entrada()
+    public function entrada(Request $request)
     {
+        // Verificar sesión
+        if (!$request->session()->has('user')) {
+            return redirect()->route('login.form');
+        }
         return view('entrada');
     }
 
-    public function registro()
+    public function registro(Request $request)
     {
+        // Verificar sesión
+        if (!$request->session()->has('user')) {
+            return redirect()->route('login.form');
+        }
         return view('registro');
     }
 

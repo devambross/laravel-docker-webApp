@@ -11,7 +11,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Registrar middleware personalizado
+        $middleware->alias([
+            'check.session' => \App\Http\Middleware\CheckSession::class,
+        ]);
+
+        // Excluir rutas API de verificación CSRF
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
