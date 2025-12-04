@@ -6,48 +6,23 @@ Write-Host "  ACTUALIZACION DEL PROYECTO LARAVEL   " -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Variables de configuración
-$RUTA_PROYECTO_REMOTO = "C:\xampp\htdocs\laravel-docker-webApp\src"
-$RUTA_PROYECTO_LOCAL = "C:\Users\DANIEL\laravel-docker\src"
+# Variables de configuracion
+$RUTA_PROYECTO = "C:\xampp\htdocs\laravel-docker-webApp\src"
 
-# Paso 1: Verificar que estamos en la ruta local correcta
-Write-Host "[1/8] Verificando ruta del proyecto local..." -ForegroundColor Yellow
-if (!(Test-Path $RUTA_PROYECTO_LOCAL)) {
-    Write-Host "ERROR: No se encuentra la ruta del proyecto local: $RUTA_PROYECTO_LOCAL" -ForegroundColor Red
-    exit 1
-}
-Write-Host "✓ Ruta verificada" -ForegroundColor Green
-Write-Host ""
-
-# Paso 2: Navegar al proyecto local y obtener cambios de Git
-Write-Host "[2/8] Actualizando código desde Git..." -ForegroundColor Yellow
-Set-Location $RUTA_PROYECTO_LOCAL
+# Paso 1: Git pull
+Write-Host "[1/6] Actualizando codigo desde Git..." -ForegroundColor Yellow
+Set-Location "C:\xampp\htdocs\laravel-docker-webApp"
 git pull origin main
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ADVERTENCIA: Error al hacer git pull. Continuando..." -ForegroundColor Yellow
 }
-Write-Host "✓ Git actualizado" -ForegroundColor Green
+Write-Host "OK Git actualizado" -ForegroundColor Green
 Write-Host ""
 
-# Paso 3: Sincronizar archivos al servidor remoto (excluyendo archivos innecesarios)
-Write-Host "[3/8] Copiando archivos al servidor remoto..." -ForegroundColor Yellow
-Write-Host "Origen: $RUTA_PROYECTO_LOCAL" -ForegroundColor Gray
-Write-Host "Destino: $RUTA_PROYECTO_REMOTO" -ForegroundColor Gray
-
-# Crear carpeta de destino si no existe
-if (!(Test-Path $RUTA_PROYECTO_REMOTO)) {
-    New-Item -Path $RUTA_PROYECTO_REMOTO -ItemType Directory -Force | Out-Null
-}
-
-# Copiar archivos (excluyendo node_modules, vendor, storage, .git)
-robocopy $RUTA_PROYECTO_LOCAL $RUTA_PROYECTO_REMOTO /MIR /XD node_modules vendor storage .git /XF .env database.sqlite /NFL /NDL /NJH /NJS /nc /ns /np
-Write-Host "✓ Archivos copiados" -ForegroundColor Green
-Write-Host ""
-
-# Paso 4: Navegar al proyecto remoto
-Write-Host "[4/8] Navegando al proyecto remoto..." -ForegroundColor Yellow
-Set-Location $RUTA_PROYECTO_REMOTO
-Write-Host "✓ En proyecto remoto" -ForegroundColor Green
+# Paso 2: Navegar al proyecto
+Write-Host "[2/6] Navegando al proyecto..." -ForegroundColor Yellow
+Set-Location $RUTA_PROYECTO
+Write-Host "OK En proyecto remoto" -ForegroundColor Green
 Write-Host ""
 
 # Paso 5: Instalar/actualizar dependencias de Composer
