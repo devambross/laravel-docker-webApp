@@ -47,18 +47,35 @@ Write-Host ""
 # Paso 7: Limpiar caché de Laravel
 Write-Host "[7/8] Limpiando caché de Laravel..." -ForegroundColor Yellow
 php artisan config:clear
+Write-Host ""
+
+# Paso 3: Instalar dependencias de Composer
+Write-Host "[3/6] Instalando dependencias de Composer..." -ForegroundColor Yellow
+composer install --no-dev --optimize-autoloader
+Write-Host "OK Dependencias instaladas" -ForegroundColor Green
+Write-Host ""
+
+# Paso 4: Ejecutar migraciones
+Write-Host "[4/6] Ejecutando migraciones..." -ForegroundColor Yellow
+php artisan migrate --force
+Write-Host "OK Migraciones ejecutadas" -ForegroundColor Green
+Write-Host ""
+
+# Paso 5: Limpiar cache
+Write-Host "[5/6] Limpiando cache..." -ForegroundColor Yellow
+php artisan config:clear
 php artisan cache:clear
 php artisan route:clear
 php artisan view:clear
-Write-Host "✓ Caché limpiado" -ForegroundColor Green
+Write-Host "OK Cache limpiado" -ForegroundColor Green
 Write-Host ""
 
-# Paso 8: Optimizar para producción
-Write-Host "[8/8] Optimizando para producción..." -ForegroundColor Yellow
+# Paso 6: Optimizar para produccion
+Write-Host "[6/6] Optimizando para produccion..." -ForegroundColor Yellow
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
-Write-Host "✓ Optimización completa" -ForegroundColor Green
+Write-Host "OK Optimizacion completa" -ForegroundColor Green
 Write-Host ""
 
 # Resumen final
@@ -66,8 +83,6 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  ACTUALIZACION COMPLETADA CON EXITO   " -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "El proyecto está actualizado en:" -ForegroundColor White
+Write-Host "El proyecto esta actualizado en:" -ForegroundColor White
 Write-Host "http://190.119.16.135" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Presiona cualquier tecla para salir..."
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
