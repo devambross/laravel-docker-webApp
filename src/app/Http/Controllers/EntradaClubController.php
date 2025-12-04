@@ -9,6 +9,7 @@ use App\Services\SocioAPIService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class EntradaClubController extends Controller
 {
@@ -212,16 +213,58 @@ class EntradaClubController extends Controller
     public function reporteDiario(Request $request)
     {
         $fecha = $request->get('fecha', Carbon::today()->format('Y-m-d'));
+        $formato = $request->get('formato', 'json'); // json o pdf
 
         try {
-            $asistencias = AsistenciaDiaria::asistenciasDelDia($fecha);
+            $fechaCarbon = Carbon::parse($fecha);
+            $asistencias = AsistenciaDiaria::whereDate('fecha', $fecha)
+                ->orderBy('fecha_hora_entrada')
+                ->get();
             $stats = AsistenciaDiaria::estadisticasDelDia($fecha);
+
+            // Si se solicita PDF
+            if ($formato === 'pdf') {
+                // Preparar datos para la vista
+                $dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                $meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                          'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+                $fechaFormatted = $dias[$fechaCarbon->dayOfWeek] . ', ' .
+                                 $fechaCarbon->day . ' de ' .
+                                 $meses[$fechaCarbon->month - 1] . ' de ' .
+                                 $fechaCarbon->year;
+
+                $ahora = Carbon::now();
+                $fechaGeneracion = $dias[$ahora->dayOfWeek] . ', ' .
+                                  $ahora->day . ' de ' .
+                                  $meses[$ahora->month - 1] . ' de ' .
+                                  $ahora->year;
+
+                $data = [
+                    'asistencias' => $asistencias,
+                    'estadisticas' => $stats,
+                    'fecha' => $fecha,
+                    'fecha_formatted' => $fechaFormatted,
+                    'fecha_generacion' => $fechaGeneracion,
+                    'hora_generacion' => $ahora->format('H:i:s'),
+                    'es_hoy' => $fechaCarbon->isToday()
+                ];
+
+                // Generar PDF
+                $pdf = Pdf::loadView('pdf.reporte_asistencias', $data);
+                $pdf->setPaper('a4', 'portrait');
+
+                $nombreArchivo = 'Reporte_Asistencias_' . $fecha . '.pdf';
+
+                return $pdf->download($nombreArchivo);
+            }
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'asistencias' => $asistencias,
-                    'estadisticas' => $stats
+                    'estadisticas' => $stats,
+                    'fecha' => $fecha
                 ]
             ]);
 
@@ -230,6 +273,38 @@ class EntradaClubController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al generar el reporte'
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener los últimos días con registros de asistencias
+     */
+    public function ultimosDiasConRegistros(Request $request)
+    {
+        $limite = $request->get('limite', 3);
+
+        try {
+            // Obtener fechas únicas donde hay registros, limitadas y ordenadas
+            $fechas = AsistenciaDiaria::select('fecha')
+                ->distinct()
+                ->orderBy('fecha', 'desc')
+                ->limit($limite)
+                ->pluck('fecha')
+                ->map(function($fecha) {
+                    return Carbon::parse($fecha)->format('Y-m-d');
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $fechas
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error al obtener últimos días con registros: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener las fechas'
             ], 500);
         }
     }

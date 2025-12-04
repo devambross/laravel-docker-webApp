@@ -68,6 +68,29 @@
         <span id="error_entrada_club_texto">Error al cargar los datos</span>
     </div>
 
+    <!-- Modal de exportación PDF -->
+    <div id="modalExportarPDFClub" class="modal-overlay">
+        <div class="modal-container modal-md">
+            <div class="modal-header">
+                <h3>Exportar Reporte de Asistencias</h3>
+                <button class="modal-close" onclick="cerrarModalExportarPDF()">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1.5rem; color: #666;">Seleccione el día del cual desea exportar el reporte:</p>
+
+                <!-- Spinner de carga para las opciones -->
+                <div id="spinner_opciones_exportar" class="loading-spinner-small" style="display:none; text-align: center; padding: 2rem;">
+                    <div class="spinner-busqueda"></div>
+                    <p style="margin-top: 10px; color: #666;">Cargando fechas...</p>
+                </div>
+
+                <div id="opciones_exportar" class="opciones-exportar">
+                    <!-- Las opciones se cargarán dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tabla de participantes -->
     <div class="participants-table-container">
         <div class="table-wrapper">
@@ -531,6 +554,178 @@
             padding: 0.6rem 0.4rem;
         }
     }
+
+    /* Estilos para modal de exportar PDF */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-overlay.show {
+        display: flex;
+    }
+
+    .modal-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        max-width: 600px;
+        width: 90%;
+        max-height: 90vh;
+        overflow: hidden;
+        animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: #333;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 2rem;
+        color: #999;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        overflow-y: auto;
+        max-height: calc(90vh - 100px);
+    }
+
+    .opciones-exportar {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .opcion-fecha {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .opcion-fecha:hover {
+        border-color: #78B548;
+        background: #f8fdf4;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(120, 181, 72, 0.2);
+    }
+
+    .icono-calendario {
+        width: 48px;
+        height: 48px;
+        background: #f0f0f0;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.3s;
+    }
+
+    .opcion-fecha:hover .icono-calendario {
+        background: #78B548;
+    }
+
+    .opcion-fecha:hover .icono-calendario svg {
+        stroke: white;
+    }
+
+    .info-fecha {
+        flex: 1;
+    }
+
+    .info-fecha h4 {
+        margin: 0 0 0.3rem 0;
+        font-size: 1.1rem;
+        color: #333;
+    }
+
+    .info-fecha p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .badge-actualizable {
+        display: inline-block;
+        margin-top: 0.5rem;
+        padding: 0.3rem 0.6rem;
+        background: #e3f2fd;
+        color: #1976d2;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .badge-sin-registros {
+        display: inline-block;
+        margin-top: 0.5rem;
+        margin-left: 0.5rem;
+        padding: 0.3rem 0.6rem;
+        background: #fff3e0;
+        color: #e65100;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .loading-spinner-small {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
 </style>
 
 <script>
@@ -830,10 +1025,153 @@
         }
     }
 
+    // Funciones para el modal de exportación
     function exportarPDFClub() {
-        console.log('[Entrada Club] Exportando reporte del día...');
-        window.open('/api/entrada-club/reporte?formato=pdf', '_blank');
+        // Mostrar modal de selección de fecha
+        const modal = document.getElementById('modalExportarPDFClub');
+        modal.classList.add('show');
+
+        // Cargar las opciones de fechas dinámicamente
+        cargarOpcionesFechas();
     }
+
+    function cerrarModalExportarPDF() {
+        const modal = document.getElementById('modalExportarPDFClub');
+        modal.classList.remove('show');
+    }
+
+    async function cargarOpcionesFechas() {
+        const spinner = document.getElementById('spinner_opciones_exportar');
+        const contenedor = document.getElementById('opciones_exportar');
+
+        spinner.style.display = 'block';
+        contenedor.innerHTML = '';
+
+        try {
+            // Obtener los últimos 3 días con registros
+            const response = await fetch('/api/entrada-club/ultimos-dias?limite=3');
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error('Error al cargar fechas');
+            }
+
+            const fechasConRegistros = result.data || [];
+            const hoy = new Date();
+            const fechaHoyStr = hoy.toISOString().split('T')[0];
+
+            // Helper para formatear fechas
+            const formatoFecha = (fechaStr) => {
+                const fecha = new Date(fechaStr + 'T00:00:00');
+                const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                              'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                return `${dias[fecha.getDay()]}, ${fecha.getDate()} de ${meses[fecha.getMonth()]} de ${fecha.getFullYear()}`;
+            };
+
+            const formatoRelativo = (fechaStr) => {
+                const fecha = new Date(fechaStr + 'T00:00:00');
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+
+                const diffTime = hoy - fecha;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays === 0) return 'Hoy';
+                if (diffDays === 1) return 'Ayer';
+                if (diffDays === 2) return 'Anteayer';
+                return `Hace ${diffDays} días`;
+            };
+
+            // Crear opciones dinámicamente
+            let htmlOpciones = '';
+
+            // Siempre mostrar "Hoy" primero
+            const horaActual = hoy.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            const tieneRegistrosHoy = fechasConRegistros.includes(fechaHoyStr);
+
+            htmlOpciones += `
+                <div class="opcion-fecha" onclick="exportarReportePDF('${fechaHoyStr}')">
+                    <div class="icono-calendario">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </div>
+                    <div class="info-fecha">
+                        <h4>Hoy</h4>
+                        <p>${formatoFecha(fechaHoyStr)} - Desde las 00:00 hasta las ${horaActual}</p>
+                        <span class="badge-actualizable">Se actualiza en tiempo real</span>
+                        ${tieneRegistrosHoy ? '' : '<span class="badge-sin-registros">Sin registros aún</span>'}
+                    </div>
+                </div>
+            `;
+
+            // Mostrar los últimos días con registros (excluyendo hoy si ya está)
+            let diasMostrados = 0;
+            for (const fecha of fechasConRegistros) {
+                if (fecha === fechaHoyStr) continue; // Ya mostramos hoy arriba
+                if (diasMostrados >= 2) break; // Máximo 2 días adicionales
+
+                htmlOpciones += `
+                    <div class="opcion-fecha" onclick="exportarReportePDF('${fecha}')">
+                        <div class="icono-calendario">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </div>
+                        <div class="info-fecha">
+                            <h4>${formatoRelativo(fecha)}</h4>
+                            <p>${formatoFecha(fecha)} - Todo el día</p>
+                        </div>
+                    </div>
+                `;
+                diasMostrados++;
+            }
+
+            // Si no hay suficientes días con registros, mostrar mensaje
+            if (diasMostrados === 0) {
+                htmlOpciones += `
+                    <div style="text-align: center; padding: 2rem; color: #999;">
+                        <p>No hay registros en días anteriores</p>
+                    </div>
+                `;
+            }
+
+            contenedor.innerHTML = htmlOpciones;
+            spinner.style.display = 'none';
+
+        } catch (error) {
+            console.error('[Entrada Club] Error cargando fechas:', error);
+            spinner.style.display = 'none';
+            contenedor.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: #e74c3c;">
+                    <p>Error al cargar las fechas disponibles</p>
+                </div>
+            `;
+        }
+    }
+
+    function exportarReportePDF(fecha) {
+        console.log('[Entrada Club] Exportando reporte:', fecha);
+
+        // Abrir el reporte en nueva ventana
+        window.open(`/api/entrada-club/reporte?fecha=${fecha}&formato=pdf`, '_blank');
+
+        // Cerrar modal
+        cerrarModalExportarPDF();
+    }    // Cerrar modal al hacer clic fuera
+    document.addEventListener('click', function(event) {
+        const modal = document.getElementById('modalExportarPDFClub');
+        if (event.target === modal) {
+            cerrarModalExportarPDF();
+        }
+    });
 
     // Agregar listeners para búsqueda en tiempo real
     document.addEventListener('DOMContentLoaded', function() {

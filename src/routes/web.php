@@ -95,6 +95,7 @@ Route::prefix('api/entrada-club')->group(function () {
     Route::get('/estadisticas', [EntradaClubController::class, 'estadisticas']); // Estadísticas del día
     Route::get('/listar', [EntradaClubController::class, 'listar']); // Listar todos los posibles asistentes
     Route::get('/reporte', [EntradaClubController::class, 'reporteDiario']); // Reporte diario de asistencias
+    Route::get('/ultimos-dias', [EntradaClubController::class, 'ultimosDiasConRegistros']); // Últimos días con registros
 });
 
 // Entrada Evento
