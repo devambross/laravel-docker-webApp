@@ -148,37 +148,29 @@
                 wrapper.innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner-busqueda" style="display:inline-block;"></div><p style="color:#999; margin-top:0.5rem;">Cargando eventos...</p></div>';
             }
 
-            const response = await fetch('/api/eventos');
-            const eventos = await response.json();
+            // Llamada optimizada: una sola petición en lugar de múltiples
+            const response = await fetch('/api/eventos/capacidad-todos');
+            const result = await response.json();
 
+            if (!result.success) {
+                throw new Error(result.message || 'Error al cargar eventos');
+            }
+
+            const eventos = result.data;
             let html = '';
 
             if (eventos.length === 0) {
                 html += '<p style="text-align:center; color:#999; padding:1rem;">No hay eventos registrados</p>';
             } else {
                 for (const evento of eventos) {
-                    // Obtener participantes del evento
-                    const participantesResp = await fetch(`/api/participantes/evento/${evento.id}`);
-                    const participantesData = await participantesResp.json();
-
-                    // Extraer data del objeto {success: true, data: [...]}
-                    const participantes = participantesData.success ? participantesData.data : (Array.isArray(participantesData) ? participantesData : []);
-
-                    // Obtener mesas del evento
-                    const mesasResp = await fetch(`/api/mesas/evento/${evento.id}`);
-                    const mesas = await mesasResp.json();
-
-                    // Validar que mesas sea un array
-                    const mesasArray = Array.isArray(mesas) ? mesas : [];
-                    const participantesArray = Array.isArray(participantes) ? participantes : [];
-
-                    const capacidadTotal = mesasArray.reduce((sum, mesa) => sum + (parseInt(mesa.capacidad) || 0), 0);
-                    const ocupados = participantesArray.length;
-                    const libres = capacidadTotal - ocupados;
+                    const capacidadTotal = evento.capacidad_total || 0;
+                    const ocupados = evento.ocupados || 0;
+                    const libres = evento.libres || 0;
+                    const totalMesas = evento.total_mesas || 0;
 
                     // Mostrar evento incluso si no tiene mesas
                     let mesasInfo;
-                    if (mesasArray.length > 0) {
+                    if (totalMesas > 0) {
                         mesasInfo = `<span class="capacity-fill">Libres: ${libres}</span>
                                      <span class="capacity-total">Ocupados: ${ocupados}/${capacidadTotal}</span>`;
                     } else {
@@ -263,7 +255,11 @@
 
             wrapper.innerHTML = html;
         } catch (error) {
-            console.error('[Registro] Error cargando capacidad:', error);
+            console.error('[Registro] Error cargando capacidad de eventos:', error);
+            const wrapper = document.querySelector('.capacity-scroll-wrapper');
+            if (wrapper) {
+                wrapper.innerHTML = '<p style="text-align:center; color:#e74c3c; padding:1rem;">Error al cargar los eventos. Intente nuevamente.</p>';
+            }
         }
     }
 
@@ -275,72 +271,51 @@
                 wrapper.innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner-busqueda" style="display:inline-block;"></div><p style="color:#999; margin-top:0.5rem;">Cargando mesas...</p></div>';
             }
 
-            const response = await fetch('/api/eventos');
-            const eventos = await response.json();
+            // Llamada optimizada: una sola petición en lugar de múltiples
+            const response = await fetch('/api/mesas/todas');
+            const result = await response.json();
 
+            if (!result.success) {
+                throw new Error(result.message || 'Error al cargar mesas');
+            }
+
+            const mesas = result.data;
             let html = '';
 
-            for (const evento of eventos) {
-                const mesasResp = await fetch(`/api/mesas/evento/${evento.id}`);
-                const mesas = await mesasResp.json();
+            for (const mesa of mesas) {
+                const ocupados = mesa.ocupados || 0;
+                const libres = mesa.disponibles || 0;
 
-                // Validar que mesas sea un array
-                const mesasArray = Array.isArray(mesas) ? mesas : [];
-
-                for (const mesa of mesasArray) {
-                    // Contar participantes en esta mesa
-                    const participantesResp = await fetch(`/api/participantes/evento/${evento.id}`);
-                    const participantesData = await participantesResp.json();
-
-                    // Extraer data del objeto {success: true, data: [...]}
-                    const todosParticipantes = participantesData.success ? participantesData.data : (Array.isArray(participantesData) ? participantesData : []);
-                    const participantesArray = Array.isArray(todosParticipantes) ? todosParticipantes : [];
-
-                    // Contar participantes filtrando por número de mesa
-                    // Ya que mesa_silla viene como "Mesa 1 - Silla 1", extraemos el número
-                    const ocupados = participantesArray.filter(p => {
-                        if (p.mesa_silla) {
-                            const match = p.mesa_silla.match(/Mesa (\d+)/);
-                            if (match) {
-                                return match[1] === String(mesa.numero);
-                            }
-                        }
-                        return false;
-                    }).length;
-
-                    const libres = (parseInt(mesa.capacidad) || 0) - ocupados;
-
-                    html += `
-                        <div class="mesa-card">
-                            <div class="mesa-header">
-                                <span class="mesa-number">Mesa ${mesa.numero}</span>
-                                <span class="mesa-event">${evento.nombre}</span>
-                                <div class="mesa-actions">
-                                    <button class="btn-icon-action edit" title="Editar"
-                                            onclick="openEditMesaModal(${mesa.id}, ${mesa.numero}, '${evento.nombre}', ${evento.id}, ${mesa.capacidad}, ${ocupados})">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                        </svg>
-                                    </button>
-                                    <button class="btn-icon-action delete" title="Eliminar" onclick="eliminarMesa(${mesa.id}, '${evento.nombre}')">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="3 6 5 6 21 6"/>
-                                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="mesa-details">
-                                <span class="mesa-date">${evento.fecha}</span>
-                                <div class="capacity-indicator">
-                                    <span class="capacity-fill">Libres: ${libres}</span>
-                                    <span class="capacity-total">Ocupados: ${ocupados}/${mesa.capacidad}</span>
-                                </div>
+                html += `
+                    <div class="mesa-card">
+                        <div class="mesa-header">
+                            <span class="mesa-number">Mesa ${mesa.numero}</span>
+                            <span class="mesa-event">${mesa.evento.nombre}</span>
+                            <div class="mesa-actions">
+                                <button class="btn-icon-action edit" title="Editar"
+                                        onclick="openEditMesaModal(${mesa.id}, ${mesa.numero}, '${mesa.evento.nombre}', ${mesa.evento.id}, ${mesa.capacidad}, ${ocupados})">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                </button>
+                                <button class="btn-icon-action delete" title="Eliminar" onclick="eliminarMesa(${mesa.id}, '${mesa.evento.nombre}')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
-                    `;
-                }
+                        <div class="mesa-details">
+                            <span class="mesa-date">${mesa.evento.fecha}</span>
+                            <div class="capacity-indicator">
+                                <span class="capacity-fill">Libres: ${libres}</span>
+                                <span class="capacity-total">Ocupados: ${ocupados}/${mesa.capacidad}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
 
             if (html === '') {
@@ -363,6 +338,10 @@
             wrapper.innerHTML = html;
         } catch (error) {
             console.error('[Registro] Error cargando mesas:', error);
+            const wrapper = document.querySelector('.mesas-scroll-wrapper');
+            if (wrapper) {
+                wrapper.innerHTML = '<p style="text-align:center; color:#e74c3c; padding:1rem;">Error al cargar las mesas. Intente nuevamente.</p>';
+            }
         }
     }
 

@@ -233,6 +233,52 @@ class MesaController extends Controller
     }
 
     /**
+     * Obtener todas las mesas de todos los eventos con sus participantes
+     * Optimizado para evitar múltiples llamadas API
+     */
+    public function todasLasMesas()
+    {
+        try {
+            $eventos = Evento::with(['mesas.participantes'])
+                ->orderBy('fecha', 'desc')
+                ->get();
+
+            $resultado = [];
+
+            foreach ($eventos as $evento) {
+                foreach ($evento->mesas as $mesa) {
+                    $resultado[] = [
+                        'id' => $mesa->id,
+                        'numero' => $mesa->numero_mesa,
+                        'capacidad' => $mesa->capacidad,
+                        'ocupados' => $mesa->ocupadas,
+                        'disponibles' => $mesa->disponibles,
+                        'completa' => $mesa->estaCompleta(),
+                        'evento' => [
+                            'id' => $evento->id,
+                            'nombre' => $evento->nombre,
+                            'fecha' => $evento->fecha->format('Y-m-d'),
+                            'area' => $evento->area
+                        ]
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $resultado
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error al obtener todas las mesas: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar las mesas'
+            ], 500);
+        }
+    }
+
+    /**
      * Actualizar la capacidad total del evento sumando todas sus mesas
      */
     private function actualizarCapacidadEvento($eventoId)

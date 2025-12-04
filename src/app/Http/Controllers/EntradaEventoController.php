@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\EntradaEvento;
 use App\Models\ParticipanteEvento;
 use App\Models\Evento;
+use App\Models\AsistenciaDiaria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class EntradaEventoController extends Controller
 {
@@ -160,26 +163,47 @@ class EntradaEventoController extends Controller
     public function listar($eventoId)
     {
         try {
+            $evento = Evento::findOrFail($eventoId);
+
+            // Obtener códigos que ya asistieron hoy en Entrada Club
+            $codigosEntradaClub = AsistenciaDiaria::where('fecha', Carbon::today()->toDateString())
+                ->pluck('codigo_socio')
+                ->toArray();
+
             $participantes = ParticipanteEvento::where('evento_id', $eventoId)
-                                              ->with(['mesa', 'entradaEvento'])
-                                              ->orderBy('mesa_id')
-                                              ->orderBy('numero_silla')
-                                              ->get();
+                ->with(['mesa', 'entradaEvento'])
+                ->orderBy('mesa_id')
+                ->orderBy('numero_silla')
+                ->get();
 
             return response()->json([
                 'success' => true,
-                'data' => $participantes->map(function($p) {
+                'evento' => [
+                    'id' => $evento->id,
+                    'nombre' => $evento->nombre,
+                    'fecha' => $evento->fecha,
+                    'fecha_fin' => $evento->fecha_fin,
+                    'area' => $evento->area
+                ],
+                'data' => $participantes->map(function($p) use ($codigosEntradaClub) {
+                    $codigo = $p->codigo_participante;
+                    $yaAsistioClub = in_array($codigo, $codigosEntradaClub);
+
                     return [
                         'id' => $p->id,
-                        'codigo_participante' => $p->codigo_participante,
+                        'codigo_participante' => $codigo,
+                        'codigo_socio' => $p->codigo_socio,
                         'tipo' => $p->tipo,
                         'nombre' => $p->nombre,
                         'dni' => $p->dni,
                         'mesa_silla' => $p->mesa_silla,
-                        'entrada_club' => $p->entradaEvento->entrada_club ?? false,
+                        'mesa_numero' => $p->mesa ? $p->mesa->numero_mesa : null,
+                        'silla_numero' => $p->numero_silla,
+                        'entrada_club' => $p->entradaEvento->entrada_club ?? $yaAsistioClub,
                         'entrada_evento' => $p->entradaEvento->entrada_evento ?? false,
                         'fecha_hora_club' => $p->entradaEvento->fecha_hora_club ?? null,
-                        'fecha_hora_evento' => $p->entradaEvento->fecha_hora_evento ?? null
+                        'fecha_hora_evento' => $p->entradaEvento->fecha_hora_evento ?? null,
+                        'ya_asistio_club' => $yaAsistioClub // Para deshabilitar checkbox
                     ];
                 })
             ]);
@@ -189,6 +213,70 @@ class EntradaEventoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al listar participantes'
+            ], 500);
+        }
+    }
+
+    /**
+     * Exportar PDF con el informe de asistencias del evento
+     */
+    public function exportarPDF($eventoId)
+    {
+        try {
+            $evento = Evento::with(['participantes.mesa', 'participantes.entradaEvento'])
+                ->findOrFail($eventoId);
+
+            // Obtener códigos que asistieron en Entrada Club (de toda la fecha del evento)
+            $codigosEntradaClub = AsistenciaDiaria::where('evento_id', $eventoId)
+                ->orWhere('fecha', Carbon::today()->toDateString())
+                ->pluck('codigo_socio')
+                ->unique()
+                ->toArray();
+
+            $participantes = $evento->participantes->map(function($p) use ($codigosEntradaClub) {
+                $codigo = $p->codigo_participante;
+                $yaAsistioClub = in_array($codigo, $codigosEntradaClub);
+
+                return [
+                    'codigo' => $codigo,
+                    'tipo' => $p->tipo,
+                    'nombre' => $p->nombre,
+                    'dni' => $p->dni,
+                    'mesa' => $p->mesa ? $p->mesa->numero_mesa : 'N/A',
+                    'silla' => $p->numero_silla ?? 'N/A',
+                    'entrada_club' => $p->entradaEvento->entrada_club ?? $yaAsistioClub,
+                    'entrada_evento' => $p->entradaEvento->entrada_evento ?? false,
+                    'fecha_hora_club' => $p->entradaEvento->fecha_hora_club ?? null,
+                    'fecha_hora_evento' => $p->entradaEvento->fecha_hora_evento ?? null
+                ];
+            });
+
+            // Calcular estadísticas
+            $stats = [
+                'total' => $participantes->count(),
+                'entrada_club' => $participantes->where('entrada_club', true)->count(),
+                'entrada_evento' => $participantes->where('entrada_evento', true)->count(),
+                'socios' => $participantes->where('tipo', 'socio')->count(),
+                'familiares' => $participantes->where('tipo', 'familiar')->count(),
+                'invitados' => $participantes->where('tipo', 'invitado')->count()
+            ];
+
+            $pdf = Pdf::loadView('pdf.reporte_asistencia_evento', [
+                'evento' => $evento,
+                'participantes' => $participantes,
+                'stats' => $stats,
+                'fechaGeneracion' => Carbon::now()->format('d/m/Y H:i:s')
+            ]);
+
+            $filename = 'asistencia_' . str_replace(' ', '_', $evento->nombre) . '_' . date('Ymd_His') . '.pdf';
+
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            Log::error("Error al exportar PDF: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar el PDF'
             ], 500);
         }
     }

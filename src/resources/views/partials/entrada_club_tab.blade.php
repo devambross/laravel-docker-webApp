@@ -3,7 +3,15 @@
     <!-- Header con título y botón exportar -->
     <div class="entrada-club-header">
         <div class="header-text">
-            <h2>Control de Asistencia - Entrada del Club</h2>
+            <h2>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Control de Asistencia - Entrada del Club
+            </h2>
             <p class="header-subtitle">Registre la asistencia de socios e invitados en la entrada del club</p>
         </div>
         <button class="btn-export-pdf" onclick="exportarPDFClub()">
@@ -21,22 +29,38 @@
     <!-- Búsquedas y filtros -->
     <div class="search-controls-row">
         <div class="search-group">
-            <label for="club_search_codigo">Buscar por Código de Socio</label>
+            <label for="club_search_codigo">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Buscar por Código de Socio
+            </label>
             <input type="text" id="club_search_codigo" placeholder="Ej: S001">
         </div>
 
         <div class="search-group">
-            <label for="club_search_nombre">Buscar por Nombre</label>
+            <label for="club_search_nombre">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                Buscar por Nombre
+            </label>
             <input type="text" id="club_search_nombre" placeholder="Ej: Juan Pérez">
         </div>
 
         <div class="search-group">
-            <label for="club_filter_area">Filtrar por Área/Evento</label>
+            <label for="club_filter_area">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                    <polyline points="2 17 12 22 22 17"></polyline>
+                    <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+                Filtrar por Área/Evento
+            </label>
             <select id="club_filter_area">
                 <option value="">Todos</option>
-                <option value="deportes">Deportes</option>
-                <option value="eventos">Eventos Sociales</option>
-                <option value="cultura">Cultura</option>
             </select>
         </div>
     </div>
@@ -107,51 +131,8 @@
                 </thead>
                 <tbody id="club_participants_tbody">
                     <tr>
-                        <td>S001</td>
-                        <td><span class="badge-type socio">socio</span></td>
-                        <td>12345678</td>
-                        <td>Juan Pérez García</td>
-                        <td>
-                            <div class="evento-info">Cena Anual 2025</div>
-                            <div class="area-info">Eventos Sociales</div>
-                        </td>
-                        <td class="checkbox-cell">
-                            <label class="checkbox-container">
-                                <input type="checkbox" onchange="toggleAsistenciaClub(this, 'S001')">
-                                <span class="checkmark"></span>
-                            </label>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>S001-INV1<br><span class="invitado-de">(Inv. de S001)</span></td>
-                        <td><span class="badge-type invitado">invitado</span></td>
-                        <td>87654321</td>
-                        <td>María López Martínez</td>
-                        <td>
-                            <div class="evento-info">Cena Anual 2025</div>
-                            <div class="area-info">Eventos Sociales</div>
-                        </td>
-                        <td class="checkbox-cell">
-                            <label class="checkbox-container">
-                                <input type="checkbox" onchange="toggleAsistenciaClub(this, 'S001-INV1')">
-                                <span class="checkmark"></span>
-                            </label>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>S002</td>
-                        <td><span class="badge-type socio">socio</span></td>
-                        <td>23456789</td>
-                        <td>Carlos Rodríguez Silva</td>
-                        <td>
-                            <div class="evento-info">Cena Anual 2025</div>
-                            <div class="area-info">Eventos Sociales</div>
-                        </td>
-                        <td class="checkbox-cell">
-                            <label class="checkbox-container">
-                                <input type="checkbox" onchange="toggleAsistenciaClub(this, 'S002')">
-                                <span class="checkmark"></span>
-                            </label>
+                        <td colspan="6" style="text-align:center; padding: 40px; color:#999;">
+                            Cargando datos...
                         </td>
                     </tr>
                 </tbody>
@@ -162,38 +143,50 @@
 
 <style>
     .entrada-club-wrapper {
-        padding: 1.5rem;
-        max-width: 1400px;
-        margin: 0 auto;
+        padding: 2rem;
+        background: #f8f9fa;
+        min-height: calc(100vh - 200px);
     }
 
     /* Header */
     .entrada-club-header {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 1.5rem;
+        align-items: center;
+        margin-bottom: 2rem;
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        border: none;
     }
 
     .entrada-club-header .header-text h2 {
-        color: #333;
-        font-size: 1.5rem;
+        color: #ffffff;
+        font-size: 1.75rem;
         margin: 0 0 0.3rem 0;
         font-weight: 600;
+        display: flex;
+        align-items: center;
+    }
+
+    .entrada-club-header .header-text h2 svg {
+        color: #ffffff;
     }
 
     .entrada-club-header .header-subtitle {
-        color: #666;
-        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.95rem;
         margin: 0;
+        font-weight: 400;
     }
 
     .btn-export-pdf {
-        padding: 0.6rem 1.2rem;
-        background: #3498db;
+        padding: 0.65rem 1.3rem;
+        background: rgba(255, 255, 255, 0.2);
         color: white;
-        border: none;
-        border-radius: 6px;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        border-radius: 8px;
         font-size: 0.9rem;
         font-weight: 600;
         cursor: pointer;
@@ -202,10 +195,14 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        backdrop-filter: blur(10px);
     }
 
     .btn-export-pdf:hover {
-        background: #2980b9;
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.8);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
     }

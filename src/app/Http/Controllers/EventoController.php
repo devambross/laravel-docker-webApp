@@ -72,6 +72,91 @@ class EventoController extends Controller
     }
 
     /**
+     * API: Listar eventos activos (para selectores)
+     */
+    public function activos()
+    {
+        try {
+            $hoy = Carbon::today();
+
+            // Eventos donde la fecha está entre hoy y fecha_fin (o fecha_fin es null)
+            $eventos = Evento::whereDate('fecha', '<=', $hoy)
+                ->where(function($query) use ($hoy) {
+                    $query->whereDate('fecha_fin', '>=', $hoy)
+                          ->orWhereNull('fecha_fin');
+                })
+                ->orderBy('fecha', 'desc')
+                ->get();
+
+            return response()->json($eventos->map(function($evento) {
+                return [
+                    'id' => $evento->id,
+                    'nombre' => $evento->nombre,
+                    'fecha' => $evento->fecha->format('Y-m-d'),
+                    'fecha_fin' => $evento->fecha_fin ? $evento->fecha_fin->format('Y-m-d') : null,
+                    'area' => $evento->area
+                ];
+            }));
+
+        } catch (\Exception $e) {
+            Log::error("Error al obtener eventos activos: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener eventos activos'
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Obtener capacidad de todos los eventos con eager loading
+     * Optimizado para evitar múltiples consultas (N+1 problem)
+     */
+    public function capacidadTodos()
+    {
+        try {
+            // Cargar todos los eventos con sus mesas y participantes en una sola consulta
+            $eventos = Evento::with(['mesas', 'participantes'])
+                ->orderBy('fecha', 'desc')
+                ->get();
+
+            $data = $eventos->map(function($evento) {
+                // Calcular capacidad total sumando capacidad de todas las mesas
+                $capacidadTotal = $evento->mesas->sum('capacidad');
+
+                // Contar participantes
+                $ocupados = $evento->participantes->count();
+
+                // Calcular libres
+                $libres = $capacidadTotal - $ocupados;
+
+                return [
+                    'id' => $evento->id,
+                    'nombre' => $evento->nombre,
+                    'fecha' => $evento->fecha->format('Y-m-d'),
+                    'fecha_fin' => $evento->fecha_fin ? $evento->fecha_fin->format('Y-m-d') : null,
+                    'area' => $evento->area,
+                    'capacidad_total' => $capacidadTotal,
+                    'ocupados' => $ocupados,
+                    'libres' => $libres,
+                    'total_mesas' => $evento->mesas->count()
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error al obtener capacidad de eventos: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener capacidad de eventos'
+            ], 500);
+        }
+    }
+
+    /**
      * API: Crear nuevo evento
      */
     public function store(Request $request)

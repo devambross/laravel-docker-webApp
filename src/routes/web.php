@@ -61,6 +61,8 @@ Route::post('/api/mesas', [MesaController::class, 'store']);
 
 // Eventos - API nueva
 Route::prefix('api/eventos')->group(function () {
+    Route::get('/activos', [EventoController::class, 'activos']); // Eventos activos para selectores
+    Route::get('/capacidad-todos', [EventoController::class, 'capacidadTodos']); // Capacidad de todos los eventos (optimizado)
     Route::get('/', [EventoController::class, 'apiIndex']); // Lista de eventos
     Route::post('/', [EventoController::class, 'store']); // Crear evento
     Route::get('/{id}', [EventoController::class, 'show']); // Detalles de evento
@@ -72,6 +74,7 @@ Route::prefix('api/eventos')->group(function () {
 
 // Mesas
 Route::prefix('api/mesas')->group(function () {
+    Route::get('/todas', [MesaController::class, 'todasLasMesas']); // Obtener todas las mesas optimizado
     Route::get('/{id}', [MesaController::class, 'show']); // Obtener mesa específica
     Route::put('/{id}', [MesaController::class, 'update']); // Actualizar mesa
     Route::delete('/{id}', [MesaController::class, 'destroy']); // Eliminar mesa
@@ -105,6 +108,7 @@ Route::prefix('api/entrada-evento')->group(function () {
     Route::post('/{participanteId}/entrada-evento', [EntradaEventoController::class, 'marcarEntradaEvento']); // Marcar entrada evento
     Route::get('/{eventoId}/estadisticas', [EntradaEventoController::class, 'estadisticas']); // Estadísticas del evento
     Route::get('/{eventoId}/listar', [EntradaEventoController::class, 'listar']); // Listar participantes del evento
+    Route::get('/{eventoId}/exportar-pdf', [EntradaEventoController::class, 'exportarPDF']); // Exportar PDF de asistencias
 });
 
 // Legacy endpoints (compatibilidad con código existente)
