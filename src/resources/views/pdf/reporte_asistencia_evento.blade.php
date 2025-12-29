@@ -16,6 +16,7 @@
             font-size: 10pt;
             color: #333;
             line-height: 1.4;
+            padding: 20px;
         }
 
         .header {

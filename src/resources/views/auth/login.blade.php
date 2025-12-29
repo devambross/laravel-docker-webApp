@@ -151,7 +151,7 @@
         <form method="POST" action="{{ route('login') }}">
             @csrf
 
-            <label>Email:</label>
+            <label>Correo/Usuario:</label>
             <input type="email" name="email" required>
 
             <label>Contraseña:</label>

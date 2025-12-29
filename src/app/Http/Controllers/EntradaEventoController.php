@@ -267,6 +267,10 @@ class EntradaEventoController extends Controller
                 'stats' => $stats,
                 'fechaGeneracion' => Carbon::now()->format('d/m/Y H:i:s')
             ]);
+            $pdf->setOption('margin-top', '15mm');
+            $pdf->setOption('margin-right', '15mm');
+            $pdf->setOption('margin-bottom', '15mm');
+            $pdf->setOption('margin-left', '15mm');
 
             $filename = 'asistencia_' . str_replace(' ', '_', $evento->nombre) . '_' . date('Ymd_His') . '.pdf';
 

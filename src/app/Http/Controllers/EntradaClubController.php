@@ -253,6 +253,10 @@ class EntradaClubController extends Controller
                 // Generar PDF
                 $pdf = Pdf::loadView('pdf.reporte_asistencias', $data);
                 $pdf->setPaper('a4', 'portrait');
+                $pdf->setOption('margin-top', '15mm');
+                $pdf->setOption('margin-right', '15mm');
+                $pdf->setOption('margin-bottom', '15mm');
+                $pdf->setOption('margin-left', '15mm');
 
                 $nombreArchivo = 'Reporte_Asistencias_' . $fecha . '.pdf';
 

@@ -280,6 +280,10 @@
             }
 
             const mesas = result.data;
+            
+            // Ordenar mesas numéricamente por número de mesa
+            mesas.sort((a, b) => parseInt(a.numero) - parseInt(b.numero));
+            
             let html = '';
 
             for (const mesa of mesas) {

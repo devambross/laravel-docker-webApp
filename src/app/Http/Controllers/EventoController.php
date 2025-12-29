@@ -307,6 +307,10 @@ class EventoController extends Controller
             // Generar PDF
             $pdf = Pdf::loadView('pdf.reporte_evento', $data);
             $pdf->setPaper('a4', 'portrait');
+            $pdf->setOption('margin-top', '15mm');
+            $pdf->setOption('margin-right', '15mm');
+            $pdf->setOption('margin-bottom', '15mm');
+            $pdf->setOption('margin-left', '15mm');
 
             $nombreArchivo = 'Evento_' . str_replace(' ', '_', $evento->nombre) . '_' . date('Y-m-d') . '.pdf';
 
