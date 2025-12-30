@@ -58,18 +58,56 @@ Sistema completo para la gestión de eventos, registro de asistencia y control d
    cd laravel-docker-webApp
    ```
 
-5. **Iniciar el proyecto:**
+5. **Iniciar los contenedores Docker:**
    ```powershell
    docker compose up -d --build
    ```
 
-6. **Acceder a la aplicación:**
-   - Abre tu navegador y ve a: http://localhost:8080
-
-7. **Detener el proyecto:**
+6. **Instalar dependencias de Composer:**
    ```powershell
-   docker compose down
+   docker exec -it laravel-app composer install
    ```
+
+7. **Configurar el archivo de entorno:**
+   ```powershell
+   docker exec -it laravel-app cp .env.example .env
+   ```
+
+8. **Generar la clave de aplicación:**
+   ```powershell
+   docker exec -it laravel-app php artisan key:generate
+   ```
+
+9. **Crear y configurar la base de datos SQLite:**
+   ```powershell
+   docker exec -it laravel-app touch database/database.sqlite
+   docker exec -it laravel-app chmod 664 database/database.sqlite
+   docker exec -it laravel-app chown www-data:www-data database/database.sqlite
+   ```
+
+10. **Configurar permisos de directorios:**
+    ```powershell
+    docker exec -it laravel-app chmod -R 775 storage bootstrap/cache
+    docker exec -it laravel-app chown -R www-data:www-data storage bootstrap/cache
+    ```
+
+11. **Ejecutar las migraciones:**
+    ```powershell
+    docker exec -it laravel-app php artisan migrate
+    ```
+
+12. **(Opcional) Cargar datos de prueba:**
+    ```powershell
+    docker exec -it laravel-app php artisan db:seed --class=TestDataSeeder
+    ```
+
+13. **Acceder a la aplicación:**
+    - Abre tu navegador y ve a: http://localhost:8080
+
+14. **Detener el proyecto:**
+    ```powershell
+    docker compose down
+    ```
 
 ### Opción 2: Sin Virtualización (Windows Home o sin VT-x)
 
@@ -184,18 +222,56 @@ Sistema completo para la gestión de eventos, registro de asistencia y control d
    cd laravel-docker-webApp
    ```
 
-4. **Iniciar el proyecto:**
+4. **Iniciar los contenedores Docker:**
    ```bash
    docker compose up -d --build
    ```
 
-5. **Acceder a la aplicación:**
-   - Abre tu navegador y ve a: http://localhost:8080
-
-6. **Detener el proyecto:**
+5. **Instalar dependencias de Composer:**
    ```bash
-   docker compose down
+   docker exec -it laravel-app composer install
    ```
+
+6. **Configurar el archivo de entorno:**
+   ```bash
+   docker exec -it laravel-app cp .env.example .env
+   ```
+
+7. **Generar la clave de aplicación:**
+   ```bash
+   docker exec -it laravel-app php artisan key:generate
+   ```
+
+8. **Crear y configurar la base de datos SQLite:**
+   ```bash
+   docker exec -it laravel-app touch database/database.sqlite
+   docker exec -it laravel-app chmod 664 database/database.sqlite
+   docker exec -it laravel-app chown www-data:www-data database/database.sqlite
+   ```
+
+9. **Configurar permisos de directorios:**
+   ```bash
+   docker exec -it laravel-app chmod -R 775 storage bootstrap/cache
+   docker exec -it laravel-app chown -R www-data:www-data storage bootstrap/cache
+   ```
+
+10. **Ejecutar las migraciones:**
+    ```bash
+    docker exec -it laravel-app php artisan migrate
+    ```
+
+11. **(Opcional) Cargar datos de prueba:**
+    ```bash
+    docker exec -it laravel-app php artisan db:seed --class=TestDataSeeder
+    ```
+
+12. **Acceder a la aplicación:**
+    - Abre tu navegador y ve a: http://localhost:8080
+
+13. **Detener el proyecto:**
+    ```bash
+    docker compose down
+    ```
 
 ### Opción 2: Sin Docker (Instalación Nativa)
 
@@ -837,15 +913,70 @@ Sistema completo para la gestión de eventos, registro de asistencia y control d
    cp .env.example .env
    composer install
    npm install
-   php artisan key:generate
-   ```
+**"Failed to open vendor/autoload.php"**
+- **ES:** Ejecuta `docker exec -it laravel-app composer install`
+- **EN:** Run `docker exec -it laravel-app composer install`
 
-4. **Configure .env:**
-   ```bash
-   nano .env
-   ```
-   ```env
-   DB_CONNECTION=mysql
+**"Permission denied in storage/logs"**
+- **ES:** Ejecuta:
+  ```bash
+  docker exec -it laravel-app chmod -R 775 storage
+  docker exec -it laravel-app chown -R www-data:www-data storage
+  ```
+- **EN:** Run:
+  ```bash
+  docker exec -it laravel-app chmod -R 775 storage
+  docker exec -it laravel-app chown -R www-data:www-data storage
+  ```
+
+**"Database file does not exist"**
+- **ES:** Ejecuta:
+  ```bash
+  docker exec -it laravel-app touch database/database.sqlite
+  docker exec -it laravel-app chmod 664 database/database.sqlite
+  docker exec -it laravel-app chown www-data:www-data database/database.sqlite
+  ```
+- **EN:** Run:
+  ```bash
+  docker exec -it laravel-app touch database/database.sqlite
+  docker exec -it laravel-app chmod 664 database/database.sqlite
+  docker exec -it laravel-app chown www-data:www-data database/database.sqlite
+  ```
+
+### Database Issues / Problemas de Base de Datos
+
+**"Access denied for user"**
+- **ES:** Verifica credenciales en archivo `.env`
+- **EN:** Check credentials in `.env` file
+
+**"Database does not exist"**
+- **ES:** Crea la base de datos manualmente o ejecuta `php artisan migrate`
+- **EN:** Create database manually or run `php artisan migrate`
+
+## 📦 Comandos Útiles / Useful Commands
+
+### Ver logs del contenedor / View container logs
+```bash
+docker logs laravel-app -f
+```
+
+### Acceder al contenedor / Access container
+```bash
+docker exec -it laravel-app bash
+```
+
+### Limpiar caché / Clear cache
+```bash
+docker exec -it laravel-app php artisan cache:clear
+docker exec -it laravel-app php artisan config:clear
+docker exec -it laravel-app php artisan route:clear
+docker exec -it laravel-app php artisan view:clear
+```
+
+### Ejecutar tests / Run tests
+```bash
+docker exec -it laravel-app php artisan test
+``
    DB_HOST=127.0.0.1
    DB_PORT=3306
    DB_DATABASE=laravel_club
