@@ -1,61 +1,151 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Laravel Docker WebApp
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema de gestión de eventos y registro de asistencias para club desarrollado con Laravel 12 y Docker.
 
-## About Laravel
+## Características
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Gestión de eventos
+- Registro de participantes
+- Control de asistencias diarias
+- Sistema de mesas y reservas
+- Registro de entrada al club
+- Exportación de datos a Excel/PDF
+- API simulada de socios
+- Autocompletado de datos de socios
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Requisitos Previos
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Docker
+- Docker Compose
+- Git
 
-## Learning Laravel
+## Instalación y Despliegue
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. Clonar el repositorio
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+```bash
+git clone <url-del-repositorio>
+cd laravel-docker-webApp
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 2. Iniciar los contenedores Docker
 
-## Laravel Sponsors
+```bash
+docker-compose up -d
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 3. Instalar dependencias de Composer
 
-### Premium Partners
+```bash
+docker exec -it laravel-app composer install
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 4. Configurar el archivo de entorno
 
-## Contributing
+```bash
+docker exec -it laravel-app cp .env.example .env
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 5. Generar la clave de aplicación
 
-## Code of Conduct
+```bash
+docker exec -it laravel-app php artisan key:generate
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 6. Crear y configurar la base de datos SQLite
 
-## Security Vulnerabilities
+```bash
+docker exec -it laravel-app touch database/database.sqlite
+docker exec -it laravel-app chmod 664 database/database.sqlite
+docker exec -it laravel-app chown www-data:www-data database/database.sqlite
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 7. Configurar permisos de directorios
 
-## License
+```bash
+docker exec -it laravel-app chmod -R 775 storage bootstrap/cache
+docker exec -it laravel-app chown -R www-data:www-data storage bootstrap/cache
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 8. Ejecutar las migraciones
+
+```bash
+docker exec -it laravel-app php artisan migrate
+```
+
+### 9. (Opcional) Cargar datos de prueba
+
+```bash
+docker exec -it laravel-app php artisan db:seed --class=TestDataSeeder
+```
+
+### 10. Acceder a la aplicación
+
+Abrir el navegador y visitar: [http://localhost:8080](http://localhost:8080)
+
+## Comandos Útiles
+
+### Detener los contenedores
+```bash
+docker-compose down
+```
+
+### Ver logs del contenedor
+```bash
+docker logs laravel-app -f
+```
+
+### Acceder al contenedor
+```bash
+docker exec -it laravel-app bash
+```
+
+### Limpiar caché
+```bash
+docker exec -it laravel-app php artisan cache:clear
+docker exec -it laravel-app php artisan config:clear
+docker exec -it laravel-app php artisan route:clear
+docker exec -it laravel-app php artisan view:clear
+```
+
+### Ejecutar tests
+```bash
+docker exec -it laravel-app php artisan test
+```
+
+## Estructura del Proyecto
+
+Para más información sobre la arquitectura y funcionalidades implementadas, consulta:
+
+- [ARQUITECTURA.md](../ARQUITECTURA.md) - Estructura y arquitectura del proyecto
+- [FUNCIONALIDADES_IMPLEMENTADAS.md](../FUNCIONALIDADES_IMPLEMENTADAS.md) - Lista de funcionalidades
+- [FUNCIONALIDADES_EVENTOS.md](../FUNCIONALIDADES_EVENTOS.md) - Gestión de eventos
+- [EJEMPLOS_API.md](../EJEMPLOS_API.md) - Ejemplos de uso de la API
+- [TESTING.md](../TESTING.md) - Guía de testing
+
+## Problemas Comunes
+
+### Error: "Permission denied" en storage/logs
+Ejecutar:
+```bash
+docker exec -it laravel-app chmod -R 775 storage
+docker exec -it laravel-app chown -R www-data:www-data storage
+```
+
+### Error: "Database file does not exist"
+Ejecutar:
+```bash
+docker exec -it laravel-app touch database/database.sqlite
+docker exec -it laravel-app chmod 664 database/database.sqlite
+docker exec -it laravel-app chown www-data:www-data database/database.sqlite
+```
+
+### Error: "Failed to open vendor/autoload.php"
+Ejecutar:
+```bash
+docker exec -it laravel-app composer install
+```
+
+## Licencia
+
+Este proyecto está licenciado bajo la [Licencia MIT](https://opensource.org/licenses/MIT).
