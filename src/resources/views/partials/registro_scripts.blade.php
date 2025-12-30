@@ -1029,7 +1029,7 @@
         console.log('[Nueva Mesa Masa] Crear', numeroMesas, 'mesas para', totalPersonas, 'personas');
 
         try {
-            // Calcular distribución de sillas
+            // Calcular distribución de sillas de forma equilibrada
             const sillasPorMesa = Math.floor(totalPersonas / numeroMesas);
             const sillasSobrantes = totalPersonas % numeroMesas;
 
@@ -1053,8 +1053,10 @@
 
                 for (let j = 0; j < loteActual; j++) {
                     const indice = i + j;
-                    const capacidad = indice === numeroMesas - 1
-                        ? sillasPorMesa + sillasSobrantes
+                    // Distribuir las sillas sobrantes equitativamente entre las primeras mesas
+                    // Las primeras 'sillasSobrantes' mesas tendrán una silla extra
+                    const capacidad = indice < sillasSobrantes
+                        ? sillasPorMesa + 1
                         : sillasPorMesa;
 
                     const mesaData = {
@@ -1837,7 +1839,7 @@
             return;
         }
 
-        // Calcular distribución
+        // Calcular distribución equilibrada
         const sillasPorMesa = Math.floor(totalPersonas / numeroMesas);
         const sillasSobrantes = totalPersonas % numeroMesas;
 
@@ -1847,15 +1849,20 @@
             // Distribución perfecta
             mensaje = `✓ <strong>${numeroMesas} mesas</strong> con <strong>${sillasPorMesa} sillas</strong> cada una.`;
         } else {
-            // Distribución con ajuste
-            const mesasNormales = numeroMesas - 1;
-            const sillasUltimaMesa = sillasPorMesa + sillasSobrantes;
+            // Distribución equilibrada con ajuste
+            const mesasConExtra = sillasSobrantes;
+            const mesasNormales = numeroMesas - sillasSobrantes;
+            const sillasConExtra = sillasPorMesa + 1;
 
-            mensaje = `✓ <strong>${mesasNormales} mesas</strong> con <strong>${sillasPorMesa} sillas</strong> cada una.<br>`;
-            mensaje += `✓ <strong>1 mesa</strong> (la última) con <strong>${sillasUltimaMesa} sillas</strong>.`;
+            if (mesasNormales > 0) {
+                mensaje = `✓ <strong>${mesasConExtra} mesas</strong> con <strong>${sillasConExtra} sillas</strong> cada una.<br>`;
+                mensaje += `✓ <strong>${mesasNormales} mesas</strong> con <strong>${sillasPorMesa} sillas</strong> cada una.`;
+            } else {
+                mensaje = `✓ <strong>${mesasConExtra} mesas</strong> con <strong>${sillasConExtra} sillas</strong> cada una.`;
+            }
         }
 
-        mensaje += `<br><br><strong>Total: ${totalPersonas} sillas</strong> distribuidas en <strong>${numeroMesas} mesas</strong>.`;
+        mensaje += `<br><br><strong>Total: ${totalPersonas} sillas</strong> distribuidas equitativamente en <strong>${numeroMesas} mesas</strong>.`;
 
         previewText.innerHTML = mensaje;
         previewDiv.style.display = 'block';

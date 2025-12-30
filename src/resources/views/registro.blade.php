@@ -249,7 +249,7 @@
                 </div>
                 <div class="info-message" style="background: #e8f5e9; border-left: 4px solid #78B548; padding: 12px; border-radius: 4px; margin: 15px 0;">
                     <p style="margin: 0; color: #555; font-size: 0.9rem;">
-                        <strong>Distribución automática:</strong> Las sillas se distribuirán equitativamente entre las mesas. Si la división no es exacta, la última mesa se ajustará automáticamente.
+                        <strong>Distribución automática:</strong> Las sillas se distribuirán equitativamente entre todas las mesas. Si la división no es exacta, las primeras mesas recibirán una silla adicional para balancear la carga.
                     </p>
                 </div>
                 <div class="modal-actions">
